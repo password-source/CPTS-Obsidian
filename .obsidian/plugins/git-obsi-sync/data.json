@@ -1,0 +1,14 @@
+{
+  "githubToken": "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",
+  "githubUsername": "password-source",
+  "repoName": "obsidian-cpts",
+  "autoSync": true,
+  "syncIntervalMs": 3000,
+  "excludePatterns": [
+    ".obsidian/workspace",
+    ".obsidian/workspace.json",
+    ".obsidian/plugins/*/data.json"
+  ],
+  "lastSyncTime": 1788196424452,
+  "commitMessageTemplate": "sync: {{datetime}}"
+}
