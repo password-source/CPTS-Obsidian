@@ -1,0 +1,259 @@
+{
+  "main": {
+    "id": "f1f27fc338450f7a",
+    "type": "split",
+    "children": [
+      {
+        "id": "9df43a6a522b40d4",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "61b56b2fb1ecf3af",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Shells & Payloads/Automating Payloads & Delivery with Metasploit.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Automating Payloads & Delivery with Metasploit"
+            }
+          },
+          {
+            "id": "c7b149fdab0a60c5",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Shells & Payloads/Payloads - Creation & Delivery.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Payloads - Creation & Delivery"
+            }
+          },
+          {
+            "id": "ad82ccc22f5bc68a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "00- General/Common Ports.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Common Ports"
+            }
+          }
+        ],
+        "currentTab": 2
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "5cb982913e9aeb75",
+    "type": "split",
+    "children": [
+      {
+        "id": "220a9a48ed9546c2",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e8c1095f83b37509",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "byCreatedTimeReverse",
+                "autoReveal": false,
+                "showSearch": true,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "73ebc990ce84b9c4",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "2b97884d2f8296ae",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "12f1891343938a3f",
+    "type": "split",
+    "children": [
+      {
+        "id": "4e0d4a035e883a3c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2599ea2840dcddbf",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "00- General/Common Ports.md",
+                "collapseAll": true,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "ec6c6610f6ec551e",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "00- General/SMB (samba).md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "00df5706b6820c65",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "11a8858cebb7e290",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "96382bee7ac0a706",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "00- General/SMB (samba).md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "e8c1095f83b37509",
+  "lastOpenFiles": [
+    "Shells & Payloads/🐧 Infiltrating Unix-Linuxd.md",
+    "Shells & Payloads/gaining unauthorized access to Windows systems.md",
+    "Shells & Payloads/Payloads - Creation & Delivery.md",
+    "Shells & Payloads/Automating Payloads & Delivery with Metasploit.md",
+    "Shells & Payloads/Payloads.md",
+    "Shells & Payloads/Reverse Shell.md",
+    "Shells & Payloads/Bind Shell.md",
+    "$$$NEVER FORGET ((UDP)) SCAN$$$/$$$NEVER FORGET ((UDP)) SCAN$$$.md",
+    "Shells & Payloads",
+    "FILE TRANSFARE/Evading Detection — File Transfers.md",
+    "Table Of Content.base",
+    "FILE TRANSFARE/Windows File Transfer Methods.md",
+    "FILE TRANSFARE/Detection File Transfare.md",
+    "FILE TRANSFARE/GTFOBins-LOBAS - LOLBins (Living off the Land binaries).md",
+    "FILE TRANSFARE/Catching Files over HTTP-S.md",
+    "FILE TRANSFARE/Protected File Transfer (encrypted).md",
+    "FILE TRANSFARE/Other File Transfer Methods.md",
+    "FILE TRANSFARE/Transferring Files with Programming Languages.md",
+    "FILE TRANSFARE/Linux File Transfer Methods.md",
+    "2- FootPrinting/Windows Remote Management Protocols (RDP)(WinRM)(WMI).md",
+    "Reconnaissance/Types of Reconnaissance.md",
+    "FILE TRANSFARE",
+    "Vulnerability Assessment",
+    "$$ENUMERATE DEEPER &ADD TO HOSTS$$",
+    "$$$NEVER FORGET ((UDP)) SCAN$$$",
+    "Reconnaissance/3- Web Information Gathering/Creepy Crawlies.md",
+    "Reconnaissance/3- Web Information Gathering/VHOSTS.md",
+    "Reconnaissance/3- Web Information Gathering/WAYBACK MACHINE.md",
+    "Reconnaissance/3- Web Information Gathering/Search Engines and GOOGLE DORKING.md",
+    "Reconnaissance/3- Web Information Gathering/DNS.md",
+    "Reconnaissance/3- Web Information Gathering/WHOIS.md",
+    "Reconnaissance",
+    "2- FootPrinting/MYSQL.md",
+    "Reconnaissance/3- Web Information Gathering",
+    "2- FootPrinting/Untitled.canvas",
+    "2- FootPrinting",
+    "Reconnaissance/1- Enumeration & Nmap"
+  ]
+}
