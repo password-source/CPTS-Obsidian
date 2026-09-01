@@ -2,7 +2,7 @@
 
 > [!info]+ 🎯 What Is Metasploit?  
 > **Metasploit** is a **Ruby-based, modular penetration-testing platform** used to:
-> 1
+> 
 > - 🔎 Enumerate systems and services
 >     
 > - 🧪 Test vulnerabilities
