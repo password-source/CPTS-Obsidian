@@ -1,3 +1,5 @@
+https://www.youtube.com/watch?v=l7mwIvT5YNo
+
 # 🧩 Writing & Importing Metasploit Modules
 
 > [!info]+ 🎯 What Is This Section About?  
