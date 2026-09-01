@@ -1,4 +1,4 @@
-https://www.youtube.com/watch?v=l7mwIvT5YNo
+# https://www.youtube.com/watch?v=l7mwIvT5YNo
 
 # 🧩 Writing & Importing Metasploit Modules
 
