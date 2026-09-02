@@ -144,7 +144,7 @@ This provides JtR with useful information for **Single crack mode**.
 # 💻 5. Running Single Crack Mode
 
 Basic command:
-
+passwd would be the file that has the hash
 ```bash
 john --single passwd
 ```
