@@ -1,4 +1,4 @@
-# 🔐 CPTS Password Attacks — Targeted Wordlists & Custom Rules
+# 🔐  Targeted Wordlists & Custom Rules
 
 > [!important]  
 > **Core Goal:** Build a small, targeted password candidate list from **OSINT + password policy + human behavior**, then use **Hashcat rules** to generate likely password variations and crack the target hash.
