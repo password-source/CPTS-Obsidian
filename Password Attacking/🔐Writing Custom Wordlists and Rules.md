@@ -468,6 +468,8 @@ hashcat -a 0 -m 0 97268a8ae45ac7d15c3cea4ce6ea550b mut_mark_final.txt
 
 
 
+
+
 ---
 
 # 🔐 1. Writing Custom Wordlists and Rules
