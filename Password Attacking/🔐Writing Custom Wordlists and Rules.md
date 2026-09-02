@@ -1,10 +1,474 @@
 
+# 🔐 CPTS Password Attacks — Mark's Password Cheat Sheet
+
+> [!important]  
+> **Goal:** Build a **targeted wordlist** from Mark's OSINT → combine words to satisfy the 12-character policy → apply common password mutations → crack the hash with Hashcat.
+
+---
+
+# 🧠 1. Overall Methodology
+
+```text
+OSINT
+  ↓
+CeWL → Initial Wordlist
+  ↓
+Hashcat Combinator (-a 1)
+  ↓
+2-Word Combinations
+  ↓
+awk → Keep 12+ Character Candidates
+  ↓
+Custom Hashcat Rules
+  ↓
+Final Mutated Wordlist
+  ↓
+hashid → Identify Hash
+  ↓
+Hashcat → Crack
+```
+
+> [!tip]  
+> **Mental model:**  
+> **OSINT = WHAT words?**  
+> **Combinator = WHICH words together?**  
+> **Rules = HOW might they be modified?**  
+> **Password policy = WHICH candidates are worth keeping?**
+
+---
+
+# 🌐 2. Step 1 — Create a Local Website for CeWL
+
+Create `mark.html` containing **only useful personal OSINT**.
+
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Mark White Bio</title></head>
+<body>
+  <h1>Mark White</h1>
+  <ul>
+    <li>Born: August 5, 1998</li>
+    <li>Works at Nexura, Ltd.</li>
+    <li>Lives in San Francisco, CA, USA</li>
+    <li>Pet: cat named Bella</li>
+    <li>Wife: Maria</li>
+    <li>Son: Alex</li>
+    <li>Fan of baseball</li>
+  </ul>
+</body>
+</html>
+```
+
+> [!warning]  
+> Do **not** put password-policy terms such as `uppercase`, `symbol`, or `number` into the OSINT page. They are requirements, not likely password content.
+
+Serve the directory containing `mark.html`:
+
+```bash
+python3 -m http.server 8000
+```
+
+The page becomes available at:
+
+```text
+http://<tun0>:8000/mark.html
+```
+
+---
+
+# 🕷️ 3. Step 2 — Generate Initial Wordlist with CeWL
+
+```bash
+cewl -d 1 -m 2 --with-numbers -w mark_initial.txt http://<tun0>:8000/mark.html
+```
+
+### Options
+
+|Option|Meaning|
+|---|---|
+|`-d 1`|Spider depth of 1|
+|`-m 2`|Minimum word length = 2|
+|`--with-numbers`|Include numeric values|
+|`-w mark_initial.txt`|Save results to `mark_initial.txt`|
+
+Check the size:
+
+```bash
+wc -l mark_initial.txt
+```
+
+Expected from the example:
+
+```text
+27
+```
+
+> [!important]  
+> `--with-numbers` matters because information such as `1998` would otherwise be excluded.
+
+---
+
+# 🔗 4. Step 3 — Combine Words with Hashcat
+
+Because the password policy requires a **minimum of 12 characters**, Mark may have combined multiple personal words.
+
+Use Hashcat's **combinator attack mode**:
+
+```bash
+hashcat --stdout \
+  -a 1 \
+  mark_initial.txt \
+  mark_initial.txt \
+  > mark_pairs.txt
+```
+
+### 🧩 What `-a 1` Does
+
+```text
+Word A + Word B
+      ↓
+Combined Candidate
+```
+
+Using the same wordlist twice means every word can be combined with every other word, including itself.
+
+Check the result:
+
+```bash
+wc -l mark_pairs.txt
+```
+
+Expected:
+
+```text
+729
+```
+
+> [!important]  
+> **Hashcat attack mode `-a 1` = Combinator attack.**
+
+---
+
+# 📏 5. Step 4 — Filter for the 12-Character Policy
+
+The company requires passwords to be **at least 12 characters**.
+
+Filter the combinations:
+
+```bash
+awk 'length($0) >= 12' mark_pairs.txt > pairs_length12.txt
+```
+
+Check the result:
+
+```bash
+wc -l pairs_length12.txt
+```
+
+Expected:
+
+```text
+76
+```
+
+### 📉 Reduction
+
+```text
+729 candidates
+      ↓
+   length ≥ 12
+      ↓
+76 candidates
+```
+
+> [!tip]  
+> Filtering **before** expensive mutation/cracking operations reduces unnecessary candidates.
+
+---
+
+# 🧩 6. Step 5 — Create Custom Hashcat Rules
+
+Create:
+
+```text
+custom.rule
+```
+
+Contents:
+
+```text
+:
+c
+so0
+c so0
+sa@
+c sa@
+c sa@ so0
+$!
+$! c
+$! so0
+$! sa@
+$! c so0
+$! c sa@
+$! so0 sa@
+$! c so0 sa@
+```
+
+### 🔑 Important Rules
+
+|Rule|Meaning|
+|---|---|
+|`:`|Do nothing|
+|`c`|Capitalize first letter|
+|`so0`|Replace `o` → `0`|
+|`sa@`|Replace `a` → `@`|
+|`$!`|Append `!`|
+
+The remaining rules combine these transformations.
+
+---
+
+# ⚙️ 7. Step 6 — Apply the Custom Rules
+
+```bash
+hashcat --stdout \
+  -r custom.rule \
+  pairs_length12.txt \
+  > mut_mark_final.txt
+```
+
+Count the generated candidates:
+
+```bash
+cat mut_mark_final.txt | wc -l
+```
+
+Expected:
+
+```text
+1140
+```
+
+### 🔄 Full Wordlist Transformation
+
+```text
+mark_initial.txt
+       │
+       │ -a 1
+       ▼
+mark_pairs.txt
+       │
+       │ length >= 12
+       ▼
+pairs_length12.txt
+       │
+       │ custom.rule
+       ▼
+mut_mark_final.txt
+       │
+       ▼
+1140 candidates
+```
+
+---
+
+# 🧪 8. Step 7 — Identify the Hash
+
+Target:
+
+```text
+97268a8ae45ac7d15c3cea4ce6ea550b
+```
+
+Use:
+
+```bash
+hashid -m 97268a8ae45ac7d15c3cea4ce6ea550b
+```
+
+Possible output includes:
+
+```text
+[+] MD2
+[+] MD5 [Hashcat Mode: 0]
+[+] MD4 [Hashcat Mode: 900]
+[+] Double MD5 [Hashcat Mode: 2600]
+```
+
+The target is a **32-character hexadecimal hash**, making standard MD5 a strong candidate.
+
+### 🧪 Validate MD5 Format
+
+```bash
+echo -n "test" | md5sum
+```
+
+Example:
+
+```text
+098f6bcd4621d373cade4e832627b4f6
+```
+
+MD5 produces:
+
+```text
+32 hexadecimal characters
+```
+
+Therefore:
+
+```text
+MD5 → Hashcat Mode 0
+```
+
+> [!important]  
+> Never rely solely on hash length for identification. Use tools such as `hashid` and the surrounding context to determine the most likely hash type.
+
+---
+
+# 💥 9. Step 8 — Crack the Hash
+
+Use Hashcat:
+
+```bash
+hashcat -a 0 -m 0 97268a8ae45ac7d15c3cea4ce6ea550b mut_mark_final.txt
+```
+
+### Options
+
+|Option|Meaning|
+|---|---|
+|`-a 0`|Straight / wordlist attack|
+|`-m 0`|MD5|
+|`<hash>`|Target hash|
+|`mut_mark_final.txt`|Final candidate list|
+
+```text
+Hash
+ ↓
+MD5 Mode (-m 0)
+ ↓
+Straight Attack (-a 0)
+ ↓
+mut_mark_final.txt
+ ↓
+Password Found
+```
+
+---
+
+# 🧠 10. The Important Numbers to Remember
+
+|Stage|File|Result|
+|---|---|--:|
+|🌐 CeWL|`mark_initial.txt`|27|
+|🔗 Combinator|`mark_pairs.txt`|729|
+|📏 Length filter|`pairs_length12.txt`|76|
+|🧩 Custom rules|`mut_mark_final.txt`|1140|
+
+```text
+27
+ ↓ × combinations
+729
+ ↓ length >= 12
+76
+ ↓ × mutations
+1140
+ ↓
+Crack MD5
+```
+
+---
+
+# ⚡ 11. One-Shot Command Cheat Sheet
+
+### 🌐 Start HTTP server
+
+```bash
+python3 -m http.server 8000
+```
+
+### 🕷️ CeWL
+
+```bash
+cewl -d 1 -m 2 --with-numbers -w mark_initial.txt http://<tun0>:8000/mark.html
+```
+
+### 🔢 Count
+
+```bash
+wc -l mark_initial.txt
+```
+
+### 🔗 Combinator
+
+```bash
+hashcat --stdout -a 1 mark_initial.txt mark_initial.txt > mark_pairs.txt
+```
+
+### 📏 Filter 12+ characters
+
+```bash
+awk 'length($0) >= 12' mark_pairs.txt > pairs_length12.txt
+```
+
+### 🧩 Apply custom rules
+
+```bash
+hashcat --stdout -r custom.rule pairs_length12.txt > mut_mark_final.txt
+```
+
+### 🔢 Count final candidates
+
+```bash
+wc -l mut_mark_final.txt
+```
+
+### 🔎 Identify hash
+
+```bash
+hashid -m 97268a8ae45ac7d15c3cea4ce6ea550b
+```
+
+### 💥 Crack MD5
+
+```bash
+hashcat -a 0 -m 0 97268a8ae45ac7d15c3cea4ce6ea550b mut_mark_final.txt
+```
+
+---
+
+# 🎯 12. CPTS Exam Mental Model
+
+> [!success]
+> 
+> ### Remember the sequence:
+> 
+> ```text
+> 1️⃣ Gather OSINT
+>        ↓
+> 2️⃣ Extract meaningful words with CeWL
+>        ↓
+> 3️⃣ Combine words with -a 1
+>        ↓
+> 4️⃣ Filter using known password requirements
+>        ↓
+> 5️⃣ Apply mutation rules
+>        ↓
+> 6️⃣ Identify hash type
+>        ↓
+> 7️⃣ Crack with the correct Hashcat mode
+> ```
+> 
+> **CeWL → Combinator → Filter → Rules → Hash ID → Crack**
+> 
+> That's the core methodology demonstrated by this exercise.
 
 
 
 
-
-
+---
 
 # 🔐 1. Writing Custom Wordlists and Rules
 
