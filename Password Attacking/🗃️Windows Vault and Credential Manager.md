@@ -321,7 +321,7 @@ Manually decrypt DPAPI-protected credentials
 For this example, the target is **LSASS memory** using `sekurlsa`.
 
 ---
-#  UAC
+#   Bypass UACUAC
 # 🔓 11. Mimikatz `sekurlsa::credman`
 
 Start Mimikatz:
