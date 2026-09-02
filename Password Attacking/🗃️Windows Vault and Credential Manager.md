@@ -321,7 +321,7 @@ Manually decrypt DPAPI-protected credentials
 For this example, the target is **LSASS memory** using `sekurlsa`.
 
 ---
-# 🚨Bypass UAC (Privilage for mimikatz)
+# 🚨Bypass UAC (Privelage for mimikatz)
 
 > [!info]  
 > **Goal:** Bypass **User Account Control (UAC)** to execute a command with elevated Administrator privileges.
