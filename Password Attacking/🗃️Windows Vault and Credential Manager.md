@@ -355,47 +355,7 @@ reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute 
 > [!important]  
 > `fodhelper.exe` and `computerdefaults.exe` are legitimate Windows executables that can be abused through **per-user registry modifications** to bypass UAC.
 
-### 🧠 Important Verification
 
-Running:
-
-```cmd
-whoami
-```
-
-may still return:
-
-```text
-mcharles
-```
-
-This is because the **username itself does not change**. The important difference is the **integrity/elevation level** of the process.
-
-```text
-mcharles
-   │
-   └── UAC bypass
-          ↓
-   Elevated Administrator context
-          ↓
-   Access to protected locations
-```
-
-> [!warning]  
-> **`whoami` alone is not sufficient to prove that UAC bypass succeeded.** Verify the process's elevation/integrity level and whether you can access Administrator-protected resources.
-
-### 🎯 CPTS Memory
-
-```text
-UAC Bypass
-   ↓
-Modify HKCU\Software\Classes\ms-settings
-   ↓
-Launch fodhelper.exe / computerdefaults.exe
-   ↓
-Elevated command execution
-   ↓
-Administrator-level access
 ```
 # 🔓 11. Mimikatz `sekurlsa::credman`
 
