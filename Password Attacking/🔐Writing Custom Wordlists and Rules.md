@@ -374,8 +374,7 @@ A user may combine multiple meaningful words to satisfy a minimum password lengt
 Hashcat's **combinator attack** joins words together.
 
 ```bash
-hashcat --stdout \  -a 1 \
-  mark_initial.txt \
+hashcat --stdout \  -a 1 \  mark_initial.txt \
   mark_initial.txt \
   > mark_pairs.txt
 ```
