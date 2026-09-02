@@ -321,7 +321,7 @@ Manually decrypt DPAPI-protected credentials
 For this example, the target is **LSASS memory** using `sekurlsa`.
 
 ---
-#   Bypass UAC
+#   🚨Bypass UAC
 ## 🚨 Step 3: Bypass UAC via `fodhelper.exe`
 
 > [!info]  
