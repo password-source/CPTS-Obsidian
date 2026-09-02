@@ -690,7 +690,7 @@ The module demonstrates this with **NetExec**.
 
 ```bash
 keelwa@htb[/htb]$ netexec smb 10.129.42.198 --local-auth -u bob -p HTB_@cademy_stdnt! --lsa
-                  netexec smb <target ip address> --local-auth -u bob -p HTB_@cademy_stdnt! --lsa
+                  netexec smb 10.129.42.198 --local-auth -u bob -p HTB_@cademy_stdnt! --lsa
 ```
 
 Example output:
