@@ -511,7 +511,7 @@ Hashcat mode:
 Example:
 
 ```bash
-keelwa@htb[/htb]$ hashcat -m 2100 '$DCC2$10240#administrator#23d97555681813db79b2ade4b4a6ff25' /usr/share/wordlists/rockyou.txt
+keelwa@htb[/htb]$ hashcat -m 2100 'e4fe184b25468118bf23f5a32ae836976ba492b3a432deb3911746b8ec63c451a70c1826e9145aa2f3421b98ed0cbd9a0c1a1befacb376c590fa7b56ca1b488b' /usr/share/wordlists/rockyou.txt
 ```
 
 Recovered password:
