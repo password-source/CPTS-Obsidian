@@ -617,10 +617,7 @@ password
 Apply the rules without cracking a hash:
 
 ```bash
-hashcat --stdout \
-  -r custom.rule \
-  pairs_length12.txt \
-  > mut_mark_final.txt
+hashcat --stdout \  -r custom.rule \  pairs_length12.txt \  > mut_mark_final.txt
 ```
 
 Count the candidates:
