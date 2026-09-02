@@ -322,7 +322,6 @@ For this example, the target is **LSASS memory** using `sekurlsa`.
 
 ---
 #   🚨Bypass UAC
-## 🚨 Step 3: Bypass UAC via `fodhelper.exe`
 
 > [!info]  
 > **Goal:** Bypass **User Account Control (UAC)** to execute a command with elevated Administrator privileges.
