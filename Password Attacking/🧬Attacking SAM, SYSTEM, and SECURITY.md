@@ -1,3 +1,13 @@
+
+
+| **Registry Hive / Component**               | **Description**                                                                                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **HKLM\SAM**                                | Contains password hashes for local user accounts. These hashes can be extracted and cracked to reveal plaintext passwords.                                         |
+| **HKLM\SYSTEM**                             | Stores the system boot key, which is used to encrypt the SAM database. This key is required to decrypt the hashes.                                                 |
+| **HKLM\SECURITY**                           | Contains sensitive information used by the Local Security Authority (LSA), including cached domain credentials (DCC2), cleartext passwords, DPAPI keys, and more.  |
+| **LSA Secrets** _(Stored in HKLM\SECURITY)_ | Contains high-value credentials extracted from the security database, including cleartext service account passwords, auto-logon credentials, and DPAPI masterkeys. |
+
+
 # 🔐 1. Attacking SAM, SYSTEM, and SECURITY
 
 > [!info]  
