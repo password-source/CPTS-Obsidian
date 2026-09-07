@@ -137,7 +137,9 @@ Password
 Mimikatz provides the:
 privilege::debug  
 sekurlsa::logonpasswords
+```shell
 
+```
 ```text
 sekurlsa::pth
 ```
