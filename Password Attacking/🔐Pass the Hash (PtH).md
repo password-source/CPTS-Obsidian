@@ -140,7 +140,7 @@ Mimikatz provides the:
 ```text
 sekurlsa::pth
 ```
-to find the NTLM hs
+to find the NTLM hashes
 ```shell
 sekurlsa::logonpasswords
 ```
