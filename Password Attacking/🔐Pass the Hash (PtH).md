@@ -140,6 +140,7 @@ Mimikatz provides the:
 ```text
 sekurlsa::pth
 ```
+
 ```shell
 sekurlsa::logonpasswords
 ```
