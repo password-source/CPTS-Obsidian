@@ -136,11 +136,12 @@ Password
 
 Mimikatz provides the:
 
-```shell
-sekurlsa::logonpasswords
-```
+
 ```text
 sekurlsa::pth
+```
+```shell
+sekurlsa::logonpasswords
 ```
 
 module.
