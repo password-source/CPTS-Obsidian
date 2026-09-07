@@ -135,10 +135,9 @@ Password
 [Mimikatz GitHub repository](https://github.com/gentilkiwi?utm_source=chatgpt.com)
 
 Mimikatz provides the:
-privilege::debug  
-sekurlsa::logonpasswords
-```shell
 
+```shell
+sekurlsa::logonpasswords
 ```
 ```text
 sekurlsa::pth
