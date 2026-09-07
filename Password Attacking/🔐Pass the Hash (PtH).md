@@ -140,7 +140,7 @@ Mimikatz provides the:
 ```text
 sekurlsa::pth
 ```
-to find the 
+to find the ntl
 ```shell
 sekurlsa::logonpasswords
 ```
