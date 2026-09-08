@@ -338,7 +338,7 @@ http://<tun0>:8000/mark.html
 # 🕷️ 8. Generate the Initial Wordlist
 
 ```bash
-cewl -d 1 -m 2 --with-numbers -w mark_initial.txt http://<tun0>:8000/mark.html
+cewl -d 1 -m 2 --with-numbers -w mark_initial.txt http://10.10.14.214:8080/names.html
 ```
 
 ### Options
