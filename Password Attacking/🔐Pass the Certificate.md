@@ -505,7 +505,7 @@ Kerberos-aware tools
 
 ---
 
-# 💀 14. DCSync with the DC01$ TGT( the dump)
+# 💀 14. DCSync with the DC01$ TGT( the dump) (NTLM)
 
 The Domain Controller machine account can be extremely powerful.
 
