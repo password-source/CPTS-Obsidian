@@ -204,7 +204,7 @@ service running.
 Example:
 
 ```bash
-python3 printerbug.py INLANEFREIGHT.LOCAL/wwhite:"package5shores_topher1"@10.129.234.109 10.10.14.214
+python3 printerbug.py INLANEFREIGHT.LOCAL/wwhite:"package5shores_topher1"@10.129.234.174 10.10.14.214
 ```
 
 Here:
