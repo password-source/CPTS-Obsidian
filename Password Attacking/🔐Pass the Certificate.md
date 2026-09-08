@@ -798,7 +798,7 @@ which indicates the cache contains the domain TGT.
 ---
 
 # 🖥️ 21. Remote Access with Evil-WinRM
-$$you can connect using the hash$$ 
+$you can connect using the hash$ 
 If the victim account has appropriate WinRM permissions, such as membership in:
 
 ```text
