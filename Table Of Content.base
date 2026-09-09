@@ -7,3 +7,6 @@ views:
     order:
       - file.name
       - file.folder
+    sort:
+      - property: file.ctime
+        direction: ASC
