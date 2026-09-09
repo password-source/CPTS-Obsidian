@@ -4,3 +4,4 @@ views:
     order:
       - file.name
       - file.folder
+      - file.tags
