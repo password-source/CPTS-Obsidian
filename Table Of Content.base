@@ -3,4 +3,4 @@ views:
     name: Table
     order:
       - file.name
-      - file.ext
+      - file.folder
