@@ -1390,7 +1390,6 @@ Before attempting privilege escalation, determine the current context:
 
 EXECUTE AS LOGIN = 'john'; SELECT SYSTEM_USER; SELECT IS_SRVROLEMEMBER('sysadmin');
 ```
-```
 
 Example:
 
