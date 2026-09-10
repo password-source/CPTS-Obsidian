@@ -1,5 +1,62 @@
 
-
+              MSSQL ACCESS
+                   │
+                   ↓
+          Who am I?
+                   │
+                   ↓
+       What databases exist?
+                   │
+                   ↓
+       What interesting data?
+                   │
+                   ↓
+       What permissions/users?
+                   │
+                   ↓
+        Can I IMPERSONATE?
+             /          \
+           NO            YES
+           │              │
+           ↓              ↓
+      Other paths     Impersonate
+                          │
+                          ↓
+                 Who am I now?
+                          │
+                          ↓
+                Am I sysadmin?
+                    /       \
+                  YES        NO
+                   │          │
+                   ↓          ↓
+             SQL → OS      Look for
+                          other paths
+                              │
+                              ↓
+                       Linked servers?
+                              │
+                              ↓
+                    Can execute remotely?
+                              │
+                              ↓
+                         xp_cmdshell?
+                              │
+                              ↓
+                       Windows command
+                              │
+                              ↓
+                           whoami
+                              │
+                              ↓
+                      What privilege?
+                              │
+                     ┌────────┴────────┐
+                     ↓                 ↓
+                  SYSTEM          Low privilege
+                     │                 │
+                     ↓                 ↓
+                 Read files       Continue enum
 
 # 🗄️ 1. Attacking SQL Databases
 
