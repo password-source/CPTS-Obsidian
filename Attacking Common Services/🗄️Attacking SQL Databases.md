@@ -378,7 +378,8 @@ The `-h` option disables headers and footers for cleaner output.
 ---
 
 # 🧰 9. Connecting with (Impacket) `mssqlclient.py`
-
+```shell
+```
 impacket-mssqlclient fiona@10.129.203.10 -windows-auth
 Another useful option from Linux is Impacket's MSSQL client:
 
