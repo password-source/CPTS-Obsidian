@@ -1,6 +1,6 @@
-# 
+ 
 
-🗄️ 1. Attacking SQL Databases
+#🗄️ 1. Attacking SQL Databases
 
 > [!info]  
 > **MySQL** and **Microsoft SQL Server (MSSQL)** are relational database management systems (RDBMS) that store data in **tables, columns, and rows**.
