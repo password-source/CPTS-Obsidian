@@ -1387,9 +1387,9 @@ because `sa` is the SQL Server system administrator account.
 Before attempting privilege escalation, determine the current context:
 
 ```sql
-SELECT SYSTEM_USER
-SELECT IS_SRVROLEMEMBER('sysadmin')
-go
+
+EXECUTE AS LOGIN = 'john'; SELECT SYSTEM_USER; SELECT IS_SRVROLEMEMBER('sysadmin');
+```
 ```
 
 Example:
