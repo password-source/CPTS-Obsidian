@@ -1356,12 +1356,8 @@ Low-privileged SQL User
 Use:
 
 ```sql
-SELECT distinct b.name
-FROM sys.server_permissions a
-INNER JOIN sys.server_principals b
-ON a.grantor_principal_id = b.principal_id
-WHERE a.permission_name = 'IMPERSONATE'
-GO
+SELECT grantee.name AS [Impersonator], target.name AS [ImpersonatedLogin], p.state_desc FROM sys.server_permissions AS p INNER JOIN sys.server_principals AS grantee ON p.grantee_principal_id = grantee.principal_id INNER JOIN sys.server_principals AS target ON p.major_id = target.principal_id WHERE p.permission_name = 'IMPERSONATE' AND p.class = 101;
+
 ```
 
 Example:
