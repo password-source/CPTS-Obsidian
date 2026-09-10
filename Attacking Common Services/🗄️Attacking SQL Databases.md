@@ -1394,7 +1394,7 @@ EXECUTE AS LOGIN = 'john'; SELECT SYSTEM_USER; SELECT IS_SRVROLEMEMBER('sysadmin
 
 Example:
 
-```text
+
 -----------
 julio
 
