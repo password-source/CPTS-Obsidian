@@ -1387,13 +1387,14 @@ because `sa` is the SQL Server system administrator account.
 Before attempting privilege escalation, determine the current context:
 
 ```sql
-
+```
 EXECUTE AS LOGIN = 'john'; SELECT SYSTEM_USER; SELECT IS_SRVROLEMEMBER('sysadmin');
+```
 ```
 
 Example:
 
-
+```text
 -----------
 julio
 
@@ -1403,6 +1404,7 @@ julio
           0
 
 (1 rows affected)
+```
 
 Interpretation:
 
