@@ -379,7 +379,7 @@ This is very similar to the SOCKS pivoting workflow used with Metasploit or SSH.
 ```shell
 proxychains firefox-esr --no-remote about:blank
 ```
-
+## then browse to the website you want 
 # 🌐 11. Access the Internal Web Server
 
 The target web server is:
