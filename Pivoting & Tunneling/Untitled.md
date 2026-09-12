@@ -377,7 +377,6 @@ This is very similar to the SOCKS pivoting workflow used with Metasploit or SSH.
 # 10.5 Open Browser With Proxychains
 
 ```shell
-```
 proxychains firefox-esr --no-remote about:blank
 ```
 ```
