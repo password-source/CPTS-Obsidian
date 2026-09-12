@@ -372,6 +372,10 @@ This is very similar to the SOCKS pivoting workflow used with Metasploit or SSH.
 
 ---
 
+
+
+
+
 # 🌐 11. Access the Internal Web Server
 
 The target web server is:
