@@ -145,7 +145,9 @@ wget https://www.proxifier.com/download/ProxifierPE.zip -O ProxifierPortable.zip
 ```
 1. **Proxifier Portable**
 ```shell
-
+```
+git clone https://github.com/nccgroup/SocksOverRDP.git
+```
 ```
     
 
