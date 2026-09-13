@@ -140,7 +140,8 @@ The attack host needs the required binaries so they can be transferred to the Wi
 You need:
 
 1. **SocksOverRDP x64 binaries**
-to
+to download it go to 
+
 2. **Proxifier Portable**
 ```shell
  wget https://github.com/nccgroup/SocksOverRDP/archive/refs/tags/v1.0.zip -O SocksOverRDP.zip
