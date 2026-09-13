@@ -137,7 +137,7 @@ Therefore we use the Windows machine at `172.16.5.19` as the pivot.
 
 The attack host needs the required binaries so they can be transferred to the Windows machines.
 
-You need:
+You need:to disable realtime protection and windows firewall and defender for this
 
 1. **SocksOverRDP x64 binaries**
 to download it go to 
