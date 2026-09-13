@@ -144,6 +144,9 @@ You need:
 wget https://www.proxifier.com/download/ProxifierPE.zip -O ProxifierPortable.zip
 ```
 1. **Proxifier Portable**
+```shell
+
+```
     
 
 The Proxifier package used in the walkthrough is:
