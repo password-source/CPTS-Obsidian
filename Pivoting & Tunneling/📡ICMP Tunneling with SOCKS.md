@@ -142,7 +142,9 @@ You need:
 1. **SocksOverRDP x64 binaries**
 to download it go to 
 
-2. **Proxifier Portable**
+and choose 
+SocksOverRDP-x64
+1. **Proxifier Portable**
 ```shell
  wget https://github.com/nccgroup/SocksOverRDP/archive/refs/tags/v1.0.zip -O SocksOverRDP.zip
 ```
