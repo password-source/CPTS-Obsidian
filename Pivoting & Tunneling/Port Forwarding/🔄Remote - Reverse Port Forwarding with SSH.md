@@ -465,7 +465,7 @@ Now comes the critical step.
 
 On the attack host:
 ```bash
-ssh -R 172.16.5.129:8080:0.0.0.0:8000 ubuntu@<ipAddressofTarget> -vN
+ssh -R 172.16.5.129:8080:0.0.0.0:8000 ubuntu@10.129.163.50 -vN
 ```
 
 
