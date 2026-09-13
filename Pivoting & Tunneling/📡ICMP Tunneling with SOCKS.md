@@ -147,7 +147,6 @@ wget https://www.proxifier.com/download/ProxifierPE.zip -O ProxifierPortable.zip
 ```shell
 ```
 wget https://github.com/nccgroup/SocksOverRDP/archive/refs/heads/master.zip -O SocksOverRDP.zip
-```
 
     
 
