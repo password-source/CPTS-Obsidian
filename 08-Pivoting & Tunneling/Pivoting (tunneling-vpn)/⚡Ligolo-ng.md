@@ -73,14 +73,6 @@ wget https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_p
 - Download a precompiled release.
     
 
-For engagements, reviewing the source and compiling your own binary can be preferable.
-
-Example release:
-
-```text
-Ligolo-ng proxy 0.8.2 Linux AMD64
-```
-
 Extract archives:
 
 ```bash
