@@ -67,7 +67,6 @@ Possible installation methods:
 wget https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_proxy_0.9.1_linux_amd64.tar.gz
 ```
 
-Or:
 
 - Compile from the official source.
     
