@@ -1,3 +1,0 @@
-```shell
-whois xxxxx.xxx
-```
