@@ -1,7 +1,7 @@
 Use this updated one-line command:
 
 ```
-printf '%s\n' 'set -g mouse on' 'unbind -n C-z' 'unbind -n C-x' 'unbind -n C-n' 'unbind -n C-a' 'bind -n C-z split-window -h' 'bind -n C-x split-window -v' 'bind -n C-n new-window' 'bind -n C-a resize-pane -Z' 'bind -n C-Up select-pane -U' 'bind -n C-Down select-pane -D' 'bind -n C-Left select-pane -L' 'bind -n C-Right select-pane -R' > ~/.tmux.conf && tmux source-file ~/.tmux.conf
+printf '%s\n' 'set -g mouse on' 'set -g history-limit 50000' 'unbind -n C-z' 'unbind -n C-x' 'unbind -n C-n' 'unbind -n C-a' 'bind -n C-z split-window -h' 'bind -n C-x split-window -v' 'bind -n C-n new-window' 'bind -n C-a resize-pane -Z' 'bind -n C-Up select-pane -U' 'bind -n C-Down select-pane -D' 'bind -n C-Left select-pane -L' 'bind -n C-Right select-pane -R' > ~/.tmux.conf && tmux source-file ~/.tmux.conf
 ```
 
 ### Your complete shortcuts now
