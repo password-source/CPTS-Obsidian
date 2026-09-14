@@ -96,9 +96,9 @@ tar -xf <filename>.tar
 On Kali:
 
 ```bash
-```
 sudo ligolo-proxy -selfcert
-``
+```
+```
 The proxy uses a self-signed certificate.
 
 You may be asked whether to enable the web UI:
