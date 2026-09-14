@@ -1,581 +1,92 @@
 # 🌐 1. External Recon & Enumeration Principles
 
 > [!info]  
-> **External reconnaissance** is the process of gathering information about a target **before actively attacking or scanning it**.
+> **External reconnaissance** is the process of gathering information about a target before moving into active enumeration and exploitation.
 > 
-> The goal is to build a reliable picture of the organization's externally visible infrastructure, identify information leaks, validate the assessment scope, and discover potential paths toward an initial foothold.
+> The objective is to understand the target's externally visible infrastructure, validate scope, discover public information leaks, identify users and technologies, and potentially uncover credentials that can lead to an initial foothold.
 
-## 🧠 1.1 Why External Recon Matters
+---
 
-Before starting a pentest, external reconnaissance can help us:
-
-- ✅ Validate information provided in the client's **scoping document**
-    
-- 🎯 Ensure we are interacting with the **correct infrastructure**
-    
-- 🌐 Identify publicly exposed infrastructure the client did not mention
-    
-- 🔑 Discover **leaked credentials**
-    
-- 👤 Determine username/email naming conventions
-    
-- 🏢 Understand the organization's infrastructure and technologies
-    
-- ☁️ Identify cloud providers and third-party hosting
-    
-- 📄 Find publicly accessible documents containing sensitive metadata
-    
-- 💻 Discover leaked credentials or secrets in public repositories
-    
-- 🔎 Identify external services that may eventually provide a route into the environment
-    
+# ⚡ 2. External Recon Command Cheat Sheet
 
 > [!important]  
-> Think of external recon as **getting the lay of the land**.
+> **Quick-reference commands used in this section.**
 > 
-> You are trying to understand:
-> 
-> ```text
-> WHO are we attacking?
->        ↓
-> WHERE is their infrastructure?
->        ↓
-> WHAT technologies/services do they expose?
->        ↓
-> WHAT information has leaked publicly?
->        ↓
-> HOW is the organization structured?
->        ↓
-> CAN any of this help us gain access?
-> ```
+> These are the commands/dorks worth remembering for CPTS. The rest of the workflow is largely performed through web-based OSINT resources.
 
-A simple leak such as a username format from a company website can later become extremely valuable when constructing a password-spraying target list.
+## 🔎 2.1 DNS / Host Enumeration
 
-More advanced discoveries may include:
+### `nslookup`
 
-- Credentials pushed to GitHub
-    
-- Internal URLs inside public documents
-    
-- Intranet references
-    
-- AD username formats
-    
-- Publicly exposed cloud storage
-    
-- Password breach data
-    
-- Information about internal hardware/software
-    
-- Security products and infrastructure
-    
-
----
-
-# 🔎 2. What Are We Looking For?
-
-During external reconnaissance, we want to collect several categories of information.
-
-|**Data PointDescription**||
-|---|---|
-|`IP Space`|Valid ASN for our target, netblocks in use for the organization's public-facing infrastructure, cloud presence and the hosting providers, DNS record entries, etc.|
-|`Domain Information`|Based on IP data, DNS, and site registrations. Who administers the domain? Are there any subdomains tied to our target? Are there any publicly accessible domain services present? (Mailservers, DNS, Websites, VPN portals, etc.) Can we determine what kind of defenses are in place? (SIEM, AV, IPS/IDS in use, etc.)|
-|`Schema Format`|Can we discover the organization's email accounts, AD usernames, and even password policies? Anything that will give us information we can use to build a valid username list to test external-facing services for password spraying, credential stuffing, brute forcing, etc.|
-|`Data Disclosures`|For data disclosures we will be looking for publicly accessible files ( .pdf, .ppt, .docx, .xlsx, etc. ) for any information that helps shed light on the target. For example, any published files that contain `intranet` site listings, user metadata, shares, or other critical software or hardware in the environment (credentials pushed to a public GitHub repo, the internal AD username format in the metadata of a PDF, for example.)|
-|`Breach Data`|Any publicly released usernames, passwords, or other critical information that can help an attacker gain a foothold.|
-
-## 🧩 2.1 The Five Major Recon Categories
-
-```text
-🌐 IP SPACE
-   └── ASN / Netblocks / Cloud / Hosting
-
-🌎 DOMAIN INFORMATION
-   └── DNS / Subdomains / Mail / VPN / Websites / Defenses
-
-👤 SCHEMA FORMAT
-   └── Emails / Usernames / AD Naming / Password Policy Clues
-
-📄 DATA DISCLOSURES
-   └── PDFs / Office Docs / GitHub / Metadata / Internal URLs
-
-🔑 BREACH DATA
-   └── Usernames / Passwords / Hashes / Previous Leaks
+```bash
+nslookup ns1.inlanefreight.com
 ```
 
-> [!tip]  
-> If you get stuck during a pentest, **go back to passive reconnaissance**. A forgotten public document, username format, or breach credential may provide the missing piece needed to move forward.
-
----
-
-# 🗺️ 3. Where Are We Looking?
-
-Different sources can provide different pieces of the target picture.
-
-|**ResourceExamples**||
-|---|---|
-|`ASN / IP registrars`|[IANA](https://www.iana.org/), [arin](https://www.arin.net/) for searching the Americas, [RIPE](https://www.ripe.net/) for searching in Europe, [BGP Toolkit](https://bgp.he.net/)|
-|`Domain Registrars & DNS`|[Domaintools](https://www.domaintools.com/), [PTRArchive](http://ptrarchive.com/), [ICANN](https://lookup.icann.org/lookup), manual DNS record requests against the domain in question or against well known DNS servers, such as `8.8.8.8`.|
-|`Social Media`|Searching Linkedin, Twitter, Facebook, your region's major social media sites, news articles, and any relevant info you can find about the organization.|
-|`Public-Facing Company Websites`|Often, the public website for a corporation will have relevant info embedded. News articles, embedded documents, and the "About Us" and "Contact Us" pages can also be gold mines.|
-|`Cloud & Dev Storage Spaces`|[GitHub](https://github.com/), [AWS S3 buckets & Azure Blog storage containers](https://grayhatwarfare.com/), [Google searches using "Dorks"](https://www.exploit-db.com/google-hacking-database)|
-|`Breach Data Sources`|[HaveIBeenPwned](https://haveibeenpwned.com/) to determine if any corporate email accounts appear in public breach data, [Dehashed](https://www.dehashed.com/) to search for corporate emails with cleartext passwords or hashes we can try to crack offline. We can then try these passwords against any exposed login portals (Citrix, RDS, OWA, 0365, VPN, VMware Horizon, custom applications, etc.) that may use AD authentication.|
-
----
-
-# 🌐 4. Finding Address Spaces
-
-## 🛰️ 4.1 ASN & BGP Enumeration
-
-The **Hurricane Electric BGP Toolkit** is useful for researching:
-
-- IP address space
-    
-- Netblocks
-    
-- Autonomous System Numbers (**ASN**)
-    
-- Public infrastructure
-    
-- Relationships between IPs and organizations
-    
-
-The basic methodology is:
-
-```text
-DOMAIN / IP
-    ↓
-BGP / ASN LOOKUP
-    ↓
-ASN
-    ↓
-NETBLOCKS
-    ↓
-PUBLIC IP SPACE
-    ↓
-HOSTS / DNS / SERVICES
+```bash
+nslookup ns2.inlanefreight.com
 ```
 
-Large organizations frequently have their own ASN and self-host significant portions of their infrastructure.
-
-Smaller organizations may instead use infrastructure belonging to:
-
-- Cloudflare
-    
-- Google Cloud
-    
-- AWS
-    
-- Azure
-    
-- Other hosting providers
-    
-
-### ⚠️ Scope Is More Important Than Discovery
-
-Discovering an IP address **does not automatically mean you are authorized to attack it**.
-
-For example:
-
-```text
-Customer
-   │
-   └── Shared hosting / cloud provider
-          │
-          ├── Customer infrastructure
-          │
-          ├── Other customer's infrastructure
-          │
-          └── Provider infrastructure
-```
-
-A penetration tester has authorization from the **customer**, not automatically from the other organizations sharing the provider's infrastructure.
-
-> [!warning]  
-> **Never assume that an interesting IP is in scope simply because it belongs to infrastructure associated with the target.**
-> 
-> Before interacting with newly discovered infrastructure, verify the scope.
-
-Some hosting providers may require additional authorization.
-
-Examples mentioned in the source:
-
-- AWS has specific penetration-testing guidelines and allows testing of some services without prior approval.
-    
-- Oracle may require a **Cloud Security Testing Notification**.
-    
-- Other third-party providers may require written authorization.
-    
-
-These issues should be handled through:
-
-- Management
-    
-- Legal
-    
-- Contracts
-    
-- The client's authorization
-    
-- The assessment's rules of engagement
-    
-
-> [!important]  
-> When in doubt, **stop and clarify the scope in writing before attacking the host**.
+**Purpose:** Resolve a hostname to an IP address and validate DNS information discovered through other sources.
 
 ---
 
-# 🌐 5. DNS Enumeration
-
-DNS is one of the most useful sources of external information because it can reveal hosts that were not explicitly included in the original scoping document.
-
-Potentially useful information includes:
-
-- A / AAAA records
-    
-- MX records
-    
-- NS records
-    
-- SOA records
-    
-- Subdomains
-    
-- Mail servers
-    
-- DNS servers
-    
-- Additional externally reachable infrastructure
-    
-
-Useful resources include:
-
-- `domaintools`
-    
-- `viewdns.info`
-    
-- Manual DNS queries
-    
-- Public DNS servers such as `8.8.8.8`
-    
-
-## 🔎 5.1 DNS as Scope Validation
-
-DNS can reveal:
-
-```text
-Target Domain
-      │
-      ├── Web Server
-      ├── Mail Server
-      ├── DNS Server
-      ├── VPN Portal
-      ├── Subdomains
-      └── Other Hosts
-```
-
-Some discovered hosts may be out of scope.
-
-However, if an interesting subdomain resolves to an **in-scope IP**, it may potentially be relevant to the assessment.
-
-> [!tip]  
-> Do not automatically attack every interesting result. Build the list first, then compare it against the **Rules of Engagement / scope**.
-
----
-
-# 🌍 6. Public Data & OSINT
-
-Public information can reveal much more than simple contact details.
-
-Potential sources include:
-
-- LinkedIn
-    
-- Twitter
-    
-- Facebook
-    
-- Instagram
-    
-- Indeed
-    
-- Glassdoor
-    
-- Company websites
-    
-- News articles
-    
-- Job postings
-    
-- Public documents
-    
-- GitHub
-    
-- Cloud storage
-    
-
-## 💼 6.1 Job Postings
-
-Job postings can reveal:
-
-- Technologies in use
-    
-- Versions
-    
-- Infrastructure architecture
-    
-- Security products
-    
-- Backup solutions
-    
-- Disaster recovery systems
-    
-- Cloud platforms
-    
-- Enterprise applications
-    
-- Organizational structure
-    
-
-### Example: SharePoint Administrator
-
-A SharePoint administrator job posting can reveal that the company uses SharePoint and may provide clues about:
-
-- SharePoint versions
-    
-- Azure
-    
-- Enterprise applications
-    
-- Security programs
-    
-- Backup and disaster recovery
-    
-
-If the organization mentions **SharePoint 2013 and SharePoint 2016**, this may suggest multiple versions are present.
-
-That can be important because older versions may contain vulnerabilities that do not exist in newer versions.
-
-> [!important]  
-> **Public information is intelligence.**
-> 
-> A job advertisement that looks harmless to the company may give a penetration tester a technology/version fingerprint.
-
----
-
-# 🌐 7. Public-Facing Websites
-
-The organization's own website can reveal:
-
-- Contact emails
-    
-- Phone numbers
-    
-- Organizational information
-    
-- Employee names
-    
-- Organizational charts
-    
-- Published documents
-    
-- Internal URLs
-    
-- Intranet references
-    
-- Technology information
-    
-- Links to external services
-    
-
-Documents embedded on public websites deserve particular attention.
-
-```text
-PUBLIC WEBSITE
-      ↓
-DOCUMENTS
-      ↓
-METADATA / LINKS / NAMES
-      ↓
-INTERNAL INFRASTRUCTURE CLUES
-      ↓
-USERNAMES / HOSTNAMES / APPLICATIONS
-```
-
----
-
-# 📄 8. Hunting for Publicly Accessible Files
-
-Search engines can be used to locate publicly indexed files.
-
-Example:
+## 📄 2.2 Search for Public PDF Files
 
 ```text
 filetype:pdf inurl:inlanefreight.com
 ```
 
-This searches for PDF documents associated with the target domain.
+**Purpose:** Search-engine dork for PDF files indexed under the target domain.
 
-The source example discovered a PDF titled:
+Useful variations:
 
 ```text
-corporate goals and strategy - Inlanefreight
+filetype:pdf inurl:target.com
+filetype:docx inurl:target.com
+filetype:xlsx inurl:target.com
+filetype:pptx inurl:target.com
 ```
 
-### Why Save Discovered Files?
-
-When performing recon, save:
-
-- Documents
-    
-- Screenshots
-    
-- Scan output
-    
-- Tool output
-    
-- URLs
-    
-- Interesting search results
-    
-
 > [!tip]  
-> **Document everything as you discover it.**
+> The important idea is not memorizing every Google dork. Understand the pattern:
 > 
-> Saving evidence immediately prevents losing the location of important information later and helps maintain a comprehensive assessment record.
+> ```text
+> filetype:<extension> inurl:<target>
+> ```
 
 ---
 
-# 📧 9. Hunting Email Addresses
-
-A Google dork can search for references to the organization's email domain.
-
-Example:
+## 📧 2.3 Search for Email Addresses
 
 ```text
 intext:"@inlanefreight.com" inurl:inlanefreight.com
 ```
 
-The purpose is to locate pages containing email addresses associated with the target.
+**Purpose:** Search indexed pages for references to the target's email domain.
 
-In the example, a contact page exposed multiple employees and their contact information.
-
-This allowed us to identify an apparent naming convention:
+Mental model:
 
 ```text
-first.last@inlanefreight.com
+TARGET DOMAIN
+      ↓
+SEARCH FOR @domain
+      ↓
+EMPLOYEE NAMES
+      ↓
+EMAIL FORMAT
+      ↓
+USERNAME FORMAT
 ```
-
-For example:
-
-```text
-emma.williams@inlanefreight.com
-john.smith@inlanefreight.com
-david.jones@inlanefreight.com
-```
-
-This can later help construct usernames for:
-
-- Password spraying
-    
-- Credential testing
-    
-- Credential stuffing
-    
-- Social engineering/phishing, **if explicitly in scope**
-    
-
-> [!important]  
-> The valuable discovery is not just the email address itself.
-> 
-> The real intelligence is the **schema**:
-> 
-> ```text
-> Employee Name
->       ↓
-> Email Format
->       ↓
-> Username Format
->       ↓
-> Candidate User List
->       ↓
-> Authentication Testing
-> ```
 
 ---
 
-# 👤 10. Username Harvesting
-
-A tool such as **linkedin2username** can scrape information from a company's LinkedIn presence and generate possible username formats.
-
-Potential formats include:
-
-```text
-flast
-first.last
-f.last
-firstl
-```
-
-The generated usernames can then become candidates for later authentication testing.
-
-> [!warning]  
-> Username generation only creates **potential identities**. It does not prove that an account exists or that a particular authentication attempt is authorized.
-> 
-> Any password spraying, brute forcing, or credential testing must remain within the assessment scope and rules of engagement.
-
----
-
-# 🔑 11. Credential Hunting & Breach Data
-
-Breach data can sometimes provide:
-
-- Usernames
-    
-- Email addresses
-    
-- Cleartext passwords
-    
-- Password hashes
-    
-- Other leaked information
-    
-
-A source such as **DeHashed** can be used to search breach data.
-
-The source notes that many discovered passwords will be old and unusable, but occasionally credentials may still work against externally exposed authentication portals.
-
-Potential targets can include:
-
-- Citrix
-    
-- RDS
-    
-- OWA
-    
-- Microsoft 365
-    
-- VPN portals
-    
-- VMware Horizon
-    
-- Custom applications
-    
-- Other services using AD authentication
-    
-
-> [!warning]  
-> Breach credentials are **leads**, not guaranteed valid credentials. Treat them as potentially stale and handle them according to the engagement's authorization and credential-testing rules.
-
----
-
-# 💻 12. DeHashed Example
-
-Example command from the source:
+## 🔑 2.4 DeHashed Example
 
 ```bash
 sudo python3 dehashed.py -q inlanefreight.local -p
 ```
+
+**Purpose:** Query breach data for information associated with the target domain.
 
 Example output:
 
@@ -605,233 +116,257 @@ database_name : MyFitnessPal
 <SNIP>
 ```
 
-### 🧠 What This Gives the Tester
-
-The result potentially gives:
-
-```text
-EMAIL
-  ↓
-USERNAME
-  ↓
-PASSWORD / HASH
-  ↓
-VALIDATE AGE / RELEVANCE
-  ↓
-CHECK AUTHORIZED EXTERNAL SERVICES
-  ↓
-POSSIBLE FOOTHOLD
-```
-
-The source notes that the example data is **fictional**.
-
-The example script is:
-
-```text
-https://github.com/mrb3n813/Pentest-stuff/blob/master/dehashed.py
-```
-
-An alternative script mentioned is:
-
-```text
-https://github.com/sm00v/Dehashed
-```
-
 > [!warning]  
-> The source notes that DeHashed's API structure has changed and modifications to the example script may be necessary. Before executing third-party scripts, understand what the script does and what data it sends or retrieves.
+> The credentials shown above are **fictional training data**. Real breach credentials must only be tested against systems explicitly authorized by the engagement.
 
 ---
 
-# 🧩 13. External Recon Methodology
+## 🧰 2.5 Tools & Websites Mentioned
 
-The major lesson is that external enumeration is **iterative**, not a one-time checklist.
+> [!info]  
+> The following resources are referenced throughout this section. Use the official/current websites where possible.
 
-A useful mental model:
+|Resource|Primary Use|
+|---|---|
+|**Hurricane Electric BGP Toolkit**|ASN, BGP prefixes, netblocks, DNS and IP-space research|
+|**IANA**|Internet number/resource information|
+|**ARIN**|IP/ASN registration information for the Americas|
+|**RIPE**|IP/ASN registration information for Europe and surrounding regions|
+|**DomainTools**|Domain, DNS, WHOIS and historical infrastructure intelligence|
+|**PTRArchive**|Historical/reverse DNS information|
+|**ICANN Lookup**|Domain registration information|
+|**ViewDNS**|Reverse IP, DNS, WHOIS and other DNS-related OSINT|
+|**LinkedIn**|Employee and organizational information|
+|**GitHub**|Public source code and accidental credential exposure|
+|**GreyHat Warfare**|Public cloud-storage/bucket discovery|
+|**Have I Been Pwned**|Checking whether email addresses appear in known breaches|
+|**DeHashed**|Breach-data searches for emails, usernames, passwords and hashes|
+|**linkedin2username**|Generate potential username formats from LinkedIn information|
+|**TruffleHog**|Search repositories and other sources for exposed secrets|
+|**Google / Search Engine Dorks**|Locate indexed files, pages and information|
+
+---
+
+# 🎯 3. Why External Recon Matters
+
+Before kicking off a pentest, external reconnaissance can help us:
+
+- ✅ Validate information provided in the client's **scoping document**
+    
+- 🎯 Ensure we are attacking the **correct infrastructure**
+    
+- 🌐 Discover publicly accessible infrastructure
+    
+- 🔑 Find leaked credentials
+    
+- 👤 Identify username/email naming conventions
+    
+- 🏢 Understand the organization's infrastructure
+    
+- ☁️ Identify cloud and third-party hosting
+    
+- 📄 Discover publicly accessible documents
+    
+- 💻 Find credentials accidentally committed to public repositories
+    
+- 🔎 Discover internal URLs, hostnames, technologies and services
+    
+
+Think of it as:
 
 ```text
-                 🌐 TARGET
+                    🎯 TARGET
+                       │
+                       ▼
+                🌎 "LAY OF THE LAND"
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+       IP SPACE       DNS        PUBLIC DATA
+          │            │            │
+          ▼            ▼            ▼
+      NETBLOCKS      HOSTS       USERS
+          │            │            │
+          └────────────┼────────────┘
+                       ▼
+                  🔑 CREDENTIALS
+                       │
+                       ▼
+                  🎯 FOOTHOLD
+```
+
+---
+
+# 🔎 4. What Are We Looking For?
+
+|**Data PointDescription**||
+|---|---|
+|`IP Space`|Valid ASN for our target, netblocks in use for the organization's public-facing infrastructure, cloud presence and the hosting providers, DNS record entries, etc.|
+|`Domain Information`|Based on IP data, DNS, and site registrations. Who administers the domain? Are there any subdomains tied to our target? Are there any publicly accessible domain services present? (Mailservers, DNS, Websites, VPN portals, etc.) Can we determine what kind of defenses are in place? (SIEM, AV, IPS/IDS in use, etc.)|
+|`Schema Format`|Can we discover the organization's email accounts, AD usernames, and even password policies? Anything that will give us information we can use to build a valid username list to test external-facing services for password spraying, credential stuffing, brute forcing, etc.|
+|`Data Disclosures`|For data disclosures we will be looking for publicly accessible files ( .pdf, .ppt, .docx, .xlsx, etc. ) for any information that helps shed light on the target. For example, any published files that contain `intranet` site listings, user metadata, shares, or other critical software or hardware in the environment (credentials pushed to a public GitHub repo, the internal AD username format in the metadata of a PDF, for example.)|
+|`Breach Data`|Any publicly released usernames, passwords, or other critical information that can help an attacker gain a foothold.|
+
+---
+
+# 🗺️ 5. Where Are We Looking?
+
+|**ResourceExamples**||
+|---|---|
+|`ASN / IP registrars`|[IANA](https://www.iana.org/), [arin](https://www.arin.net/) for searching the Americas, [RIPE](https://www.ripe.net/) for searching in Europe, [BGP Toolkit](https://bgp.he.net/)|
+|`Domain Registrars & DNS`|[Domaintools](https://www.domaintools.com/), [PTRArchive](http://ptrarchive.com/), [ICANN](https://lookup.icann.org/lookup), manual DNS record requests against the domain in question or against well known DNS servers, such as `8.8.8.8`.|
+|`Social Media`|Searching Linkedin, Twitter, Facebook, your region's major social media sites, news articles, and any relevant info you can find about the organization.|
+|`Public-Facing Company Websites`|Often, the public website for a corporation will have relevant info embedded. News articles, embedded documents, and the "About Us" and "Contact Us" pages can also be gold mines.|
+|`Cloud & Dev Storage Spaces`|[GitHub](https://github.com/), [AWS S3 buckets & Azure Blog storage containers](https://grayhatwarfare.com/), [Google searches using "Dorks"](https://www.exploit-db.com/google-hacking-database)|
+|`Breach Data Sources`|[HaveIBeenPwned](https://haveibeenpwned.com/) to determine if any corporate email accounts appear in public breach data, [Dehashed](https://www.dehashed.com/) to search for corporate emails with cleartext passwords or hashes we can try to crack offline. We can then try these passwords against any exposed login portals (Citrix, RDS, OWA, 0365, VPN, VMware Horizon, custom applications, etc.) that may use AD authentication.|
+
+---
+
+# 🌐 6. Finding Address Spaces
+
+The **Hurricane Electric BGP Toolkit** is useful for identifying:
+
+- ASN
+    
+- Netblocks
+    
+- IP ranges
+    
+- Public infrastructure
+    
+- DNS information
+    
+- Hosting relationships
+    
+
+The basic workflow:
+
+```text
+DOMAIN / IP
+     ↓
+BGP LOOKUP
+     ↓
+ASN
+     ↓
+PREFIXES / NETBLOCKS
+     ↓
+PUBLIC IP SPACE
+     ↓
+HOSTS / SERVICES
+```
+
+Large organizations may have their own ASN and self-host much of their infrastructure.
+
+Smaller organizations commonly use infrastructure belonging to:
+
+- Cloudflare
+    
+- Google Cloud
+    
+- AWS
+    
+- Azure
+    
+- Other hosting providers
+    
+
+## ⚠️ 6.1 Scope Consideration
+
+```text
+                 CUSTOMER
                     │
                     ▼
-            🔎 PASSIVE RECON
+             CLOUD / HOSTING
                     │
        ┌────────────┼────────────┐
        ▼            ▼            ▼
-     ASN/IP        DNS        PUBLIC DATA
-       │            │            │
-       ▼            ▼            ▼
-   NETBLOCKS     HOSTS       USERS / TECH
-       │            │            │
-       └────────────┼────────────┘
-                    ▼
-              📄 DOCUMENTS
-                    │
-                    ▼
-              👤 USERNAMES
-                    │
-                    ▼
-              🔑 BREACH DATA
-                    │
-                    ▼
-             🧠 BUILD TARGET
-                KNOWLEDGE
-                    │
-                    ▼
-             🎯 ACTIVE ENUM
-                    │
-                    ▼
-              NEW DISCOVERY
-                    │
-                    └──────────────┐
-                                   ▼
-                            🔄 RE-EVALUATE
+   CUSTOMER       OTHER       PROVIDER
+   SYSTEMS       CUSTOMER     SYSTEMS
 ```
 
-> [!important]  
-> **Enumeration is iterative.**
+Finding an IP associated with a customer does **not automatically authorize testing it**.
+
+> [!warning]  
+> You have authorization from the customer, not automatically from other customers or the hosting provider.
 > 
-> A new discovery in one category should cause you to revisit other categories.
+> Some providers require additional authorization or have specific penetration-testing policies.
 
-For example:
+If scope is unclear:
 
 ```text
-DNS
- ↓
-new hostname
- ↓
-website discovered
- ↓
-public document found
- ↓
-employee name discovered
- ↓
-username format identified
- ↓
-breach database checked
- ↓
-credential discovered
- ↓
-authorized external service tested
- ↓
-new access
- ↓
-internal enumeration
+DISCOVER HOST
+     ↓
+CHECK SCOPE
+     ↓
+AUTHORIZED?
+  ↙       ↘
+YES        NO
+ ↓          ↓
+TEST      STOP
+           ↓
+       ESCALATE /
+       CLARIFY
 ```
 
 ---
 
-# 🔬 14. Passive → Active Enumeration
+# 🌐 7. DNS Enumeration
 
-The overall methodology begins **wide and passive**, then becomes increasingly targeted.
+DNS can validate scope and reveal hosts that were not included in the client's original scoping document.
 
-```text
-🌎 START WIDE
-     │
-     ▼
-🌐 ASN / IP / DOMAIN
-     │
-     ▼
-📡 DNS / PUBLIC RECORDS
-     │
-     ▼
-📱 SOCIAL MEDIA
-     │
-     ▼
-📄 DOCUMENTS
-     │
-     ▼
-👤 USERNAME / EMAIL SCHEMA
-     │
-     ▼
-🔑 BREACH DATA
-     │
-     ▼
-🧠 ANALYZE RESULTS
-     │
-     ▼
-🎯 ACTIVE ENUMERATION
-     │
-     ▼
-🔄 REPEAT
-```
+Look for:
 
-The principle is:
-
-> **Start with the least intrusive sources and progressively increase interaction as the engagement allows.**
-
-This minimizes unnecessary activity while maximizing intelligence gathered before active testing.
-
----
-
-# 🧪 15. Example: External Enumeration of `inlanefreight.com`
-
-The source uses `inlanefreight.com` as a fictitious target and explicitly avoids heavy scans such as:
-
-- Nmap
+- A records
     
-- Vulnerability scanners
+- AAAA records
+    
+- MX records
+    
+- NS records
+    
+- SOA information
+    
+- Subdomains
+    
+- Mail servers
+    
+- DNS servers
+    
+- VPN portals
+    
+- Other public services
     
 
-The purpose is to demonstrate passive enumeration methodology.
+Useful resources include **DomainTools**, **ViewDNS**, and direct DNS queries.
 
----
-
-## 🌐 15.1 Step 1 — Check ASN / IP / Domain Data
-
-The BGP Toolkit returned:
+## 🔎 7.1 DNS Mental Model
 
 ```text
-IP Address:
-134.209.24.248
-
-Mail Server:
-mail1.inlanefreight.com
-
-Nameservers:
-NS1.inlanefreight.com
-NS2.inlanefreight.com
-```
-
-Because Inlanefreight is not a large corporation, it was not surprising that it did not have its own ASN.
-
-### 🧠 Why This Matters
-
-We now have several pieces of infrastructure to validate:
-
-```text
-inlanefreight.com
+TARGET DOMAIN
       │
-      ├── 134.209.24.248
+      ├── A / AAAA ──→ WEB HOST
       │
-      ├── mail1.inlanefreight.com
+      ├── MX ────────→ MAIL SERVER
       │
-      ├── ns1.inlanefreight.com
+      ├── NS ────────→ DNS SERVER
       │
-      └── ns2.inlanefreight.com
+      └── SUBDOMAINS ─→ ADDITIONAL HOSTS
 ```
 
 ---
 
-# 🔎 16. Step 2 — Validate the IP with ViewDNS
+# 💻 8. `nslookup` Validation
 
-The ViewDNS reverse-IP results showed:
+After discovering:
 
 ```text
-inlanefreight.com
-lycjg.us
+ns1.inlanefreight.com
+ns2.inlanefreight.com
 ```
 
-Both results matched the information previously obtained.
+we can independently resolve them.
 
-> [!tip]  
-> **Do not trust a single data source blindly.**
-> 
-> Cross-validation increases confidence in your reconnaissance data.
-
----
-
-# 🌐 17. Step 3 — Validate Nameservers with `nslookup`
-
-The source used:
+### NS1
 
 ```bash
 nslookup ns1.inlanefreight.com
@@ -848,7 +383,7 @@ Name:   ns1.inlanefreight.com
 Address: 178.128.39.165
 ```
 
-Then:
+### NS2
 
 ```bash
 nslookup ns2.inlanefreight.com
@@ -865,457 +400,44 @@ Name:   ns2.inlanefreight.com
 Address: 206.189.119.186
 ```
 
-### 🔎 Important Discovery
-
-We now have **two additional IP addresses**:
+This gives us:
 
 ```text
 ns1.inlanefreight.com → 178.128.39.165
 ns2.inlanefreight.com → 206.189.119.186
 ```
 
-These should be added to the investigation list.
-
-However:
-
-> [!warning]  
-> **Discovery ≠ authorization.**
-> 
-> Before scanning or attacking these addresses, determine whether they are within scope.
-> 
-> In the source example, these IP addresses were **not in scope for scanning**, although passive browsing of websites could be performed to hunt for useful information.
+> [!important]  
+> These newly discovered IPs should be added to the investigation notes, but **must be checked against scope before scanning or attacking them**.
 
 ---
 
-# 📄 18. Step 4 — Hunt for Public Documents
+# 📄 9. Public Data & OSINT
 
-Google dork:
+Public information can reveal:
 
-```text
-filetype:pdf inurl:inlanefreight.com
-```
-
-The search returned a PDF:
-
-```text
-corporate goals and strategy - Inlanefreight
-```
-
-### 🎯 Methodology
-
-When you discover an interesting document:
-
-```text
-DISCOVER
-   ↓
-RECORD URL
-   ↓
-DOWNLOAD COPY
-   ↓
-SAVE SCREENSHOT / EVIDENCE
-   ↓
-ANALYZE CONTENT
-   ↓
-ANALYZE METADATA
-   ↓
-EXTRACT NAMES / HOSTNAMES / URLS / TECHNOLOGIES
-```
-
-Potential information can include:
-
-- Employee names
+- Organization structure
     
-- Usernames
+- Employees
     
-- Internal hostnames
+- Technologies
     
-- Intranet URLs
+- Security products
     
-- Network shares
-    
-- Software
+- Software versions
     
 - Hardware
     
-- Organizational information
+- Cloud platforms
     
-- Metadata
+- Email formats
     
-
----
-
-# 📧 19. Step 5 — Hunt for Email Addresses
-
-Google dork:
-
-```text
-intext:"@inlanefreight.com" inurl:inlanefreight.com
-```
-
-This produced a contact page containing employee information.
-
-From the results, the organization appeared to use:
-
-```text
-first.last@inlanefreight.com
-```
-
-### 🧠 Why This Matters
-
-A naming convention can transform:
-
-```text
-Employee Names
-```
-
-into:
-
-```text
-Potential Usernames
-```
-
-which can later become:
-
-```text
-Password-Spraying Candidates
-```
-
-provided that such testing is explicitly authorized.
-
----
-
-# 👤 20. Step 6 — Username Harvesting
-
-The source recommends:
-
-**linkedin2username**
-
-It can generate username combinations from company employee information.
-
-Examples:
-
-```text
-flast
-first.last
-f.last
-```
-
-This provides a systematic way to build candidate username lists instead of manually guessing formats.
-
----
-
-# 🔐 21. Step 7 — Credential Hunting
-
-DeHashed can be used to search breach data for:
-
-```text
-Corporate Email
-      ↓
-Username
-      ↓
-Cleartext Password
-      ↓
-Password Hash
-```
-
-Example:
-
-```bash
-sudo python3 dehashed.py -q inlanefreight.local -p
-```
-
-Potential results may contain:
-
-```text
-email
-username
-password
-hashed_password
-name
-database_name
-```
-
-These credentials may be:
-
-- Old
+- Internal infrastructure
     
-- Reused
-    
-- Invalid
-    
-- Valid
-    
-- Associated with unrelated services
+- Potential credentials
     
 
-Therefore, they must be treated as **intelligence requiring validation**, not automatically valid access.
-
----
-
-# 🔄 22. The Complete External Recon Workflow
-
-```text
-                         🎯 TARGET
-                            │
-                            ▼
-                  📜 SCOPE / ROE REVIEW
-                            │
-                            ▼
-                    🌐 PASSIVE RECON
-                            │
-             ┌──────────────┼──────────────┐
-             ▼              ▼              ▼
-          ASN/IP           DNS          PUBLIC DATA
-             │              │              │
-             ▼              ▼              ▼
-        Netblocks        Hosts         Websites
-        Providers       MX/NS/A       Social Media
-        Cloud           Subdomains    Job Listings
-             │              │              │
-             └──────────────┼──────────────┘
-                            ▼
-                     📄 DOCUMENTS
-                            │
-                            ▼
-                  👤 EMAIL / USERNAMES
-                            │
-                            ▼
-                     🔑 BREACH DATA
-                            │
-                            ▼
-                    🧠 CORRELATE DATA
-                            │
-                            ▼
-                    🎯 TARGETED TESTING
-                            │
-                            ▼
-                    🔎 ACTIVE ENUMERATION
-                            │
-                            ▼
-                    🆕 NEW INFORMATION
-                            │
-                            └─────────────► 🔄 REPEAT
-```
-
----
-
-# 🧠 23. Mental Model — Recon as an Information Funnel
-
-The most important concept is that external enumeration starts **broad** and gradually becomes **specific**.
-
-```text
-                    🌎 EVERYTHING
-                         │
-                         ▼
-                  🌐 ORGANIZATION
-                         │
-                         ▼
-                  📡 IP / ASN SPACE
-                         │
-                         ▼
-                    🌍 DOMAINS
-                         │
-                         ▼
-                   🖥️ HOSTS
-                         │
-                         ▼
-                📄 DOCUMENTS / DATA
-                         │
-                         ▼
-                  👤 IDENTITIES
-                         │
-                         ▼
-                 🔑 CREDENTIALS
-                         │
-                         ▼
-                 🎯 VALID TARGETS
-                         │
-                         ▼
-                    🔓 FOOTHOLD
-```
-
-Each discovery should answer another question about the target.
-
-> **Recon is not about collecting random facts. It is about connecting facts until they form an attack-relevant picture of the environment.**
-
----
-
-# 🔁 24. Enumeration Is Iterative
-
-Do not think:
-
-```text
-Recon → Finished → Attack
-```
-
-Think:
-
-```text
-Recon
-  ↓
-Discovery
-  ↓
-Analysis
-  ↓
-New Lead
-  ↓
-Recon Again
-  ↓
-New Discovery
-  ↓
-Targeted Enumeration
-  ↓
-New Lead
-  ↓
-Repeat
-```
-
-For example:
-
-```text
-📄 Public PDF
-      ↓
-👤 Employee Name
-      ↓
-📧 Email Format
-      ↓
-👤 Username
-      ↓
-🔑 Breach Data
-      ↓
-🔐 Credential
-      ↓
-🌐 External Login Portal
-      ↓
-🎯 Authorized Authentication Test
-      ↓
-🔓 Potential Foothold
-```
-
----
-
-# ⚠️ 25. Scope Is Part of Enumeration
-
-A major CPTS/real-world pentesting lesson is that **finding something does not mean attacking it**.
-
-```text
-Discovery
-   ↓
-Is it related to the client?
-   ↓
-Is it explicitly in scope?
-   ↓
-Does the ROE permit interaction?
-   ↓
-Is third-party authorization required?
-   ↓
-YES → Continue
-NO  → STOP / Escalate / Clarify
-```
-
-Examples of potentially dangerous situations:
-
-- Shared hosting
-    
-- Shared cloud infrastructure
-    
-- Third-party DNS
-    
-- CDN infrastructure
-    
-- Cloud provider systems
-    
-- Other customers sharing the same infrastructure
-    
-
-> [!important]  
-> **Your authorization follows the scope, not merely the ownership relationship.**
-> 
-> If you discover infrastructure belonging to a hosting provider or another organization, do not assume it is yours to test.
-
----
-
-# 🧠 26. CPTS Enumeration Philosophy
-
-The source ultimately leads into internal Active Directory enumeration, but the same methodology applies throughout the engagement.
-
-### External
-
-```text
-PASSIVE
-  ↓
-ASN / DNS / OSINT
-  ↓
-PUBLIC DATA
-  ↓
-IDENTITIES
-  ↓
-CREDENTIALS
-```
-
-### Internal
-
-```text
-LOW-PRIVILEGE ACCESS
-  ↓
-AD ENUMERATION
-  ↓
-USERS / GROUPS / COMPUTERS
-  ↓
-SERVICES / SHARES / ACLs
-  ↓
-ATTACK PATH
-  ↓
-PRIVILEGE ESCALATION
-  ↓
-LATERAL MOVEMENT
-```
-
-The two phases are connected:
-
-```text
-🌐 EXTERNAL RECON
-       ↓
-Potential User / Credential / Host
-       ↓
-🔓 INITIAL ACCESS
-       ↓
-🏢 INTERNAL ENUMERATION
-       ↓
-🧭 ATTACK PATH DISCOVERY
-       ↓
-👑 PRIVILEGE / OBJECTIVE
-```
-
----
-
-# 📚 27. Useful Resources Mentioned
-
-### 🌐 ASN / IP
-
-- IANA
-    
-- ARIN
-    
-- RIPE
-    
-- Hurricane Electric BGP Toolkit
-    
-
-### 🌎 Domain / DNS
-
-- DomainTools
-    
-- PTRArchive
-    
-- ICANN Lookup
-    
-- ViewDNS
-    
-- Public DNS servers such as `8.8.8.8`
-    
-
-### 👥 Social / Public Information
+Important sources:
 
 - LinkedIn
     
@@ -1329,151 +451,684 @@ Potential User / Credential / Host
     
 - Glassdoor
     
+- Company websites
+    
+- Job advertisements
+    
 - News articles
     
-
-### 💻 Cloud / Development
-
+- Public documents
+    
 - GitHub
     
-- AWS S3
-    
-- Azure storage
-    
-- GreyHat Warfare
-    
-- Google search / Google Dorks
-    
-
-### 🔑 Breach Data
-
-- Have I Been Pwned
-    
-- DeHashed
-    
-
-### 👤 Username Generation
-
-- linkedin2username
-    
-
-### 🔐 Secret Hunting
-
-- TruffleHog
-    
 
 ---
 
-# 📊 28. External Recon Cheat Sheet
+# 💼 10. Job Postings as Technology Recon
 
-|Category|What to Look For|Why It Matters|
+A job posting can reveal technologies that the company uses.
+
+For example, a **SharePoint Administrator** posting may expose:
+
+- SharePoint
+    
+- SharePoint versions
+    
+- Azure
+    
+- Enterprise applications
+    
+- Security programs
+    
+- Backup systems
+    
+- Disaster recovery
+    
+
+If the company mentions:
+
+```text
+SharePoint 2013
+SharePoint 2016
+```
+
+we may infer that multiple versions could exist.
+
+That matters because:
+
+```text
+PUBLIC JOB POSTING
+       ↓
+TECHNOLOGY
+       ↓
+VERSION
+       ↓
+POTENTIAL ATTACK SURFACE
+```
+
+> [!tip]  
+> Job postings are often overlooked because they do not look like traditional security information. For a penetration tester, they can provide valuable **technology fingerprinting**.
+
+---
+
+# 🌐 11. Public-Facing Websites
+
+Company websites may expose:
+
+- Contact emails
+    
+- Phone numbers
+    
+- Employee names
+    
+- Organizational charts
+    
+- Documents
+    
+- Internal URLs
+    
+- Intranet references
+    
+- Technology information
+    
+
+Public documents deserve special attention because they may contain metadata or references that were never intended for external users.
+
+```text
+PUBLIC WEBSITE
+      ↓
+DOCUMENT
+      ↓
+METADATA / LINKS
+      ↓
+EMPLOYEE / HOSTNAME / URL
+      ↓
+INTERNAL ENVIRONMENT CLUES
+```
+
+---
+
+# 📄 12. Hunting for Files
+
+Example Google dork:
+
+```text
+filetype:pdf inurl:inlanefreight.com
+```
+
+The example returned:
+
+```text
+corporate goals and strategy - Inlanefreight
+```
+
+When discovering useful files:
+
+```text
+DISCOVER
+   ↓
+RECORD URL
+   ↓
+DOWNLOAD
+   ↓
+SAVE LOCALLY
+   ↓
+ANALYZE CONTENT
+   ↓
+ANALYZE METADATA
+   ↓
+EXTRACT INTELLIGENCE
+```
+
+Look for:
+
+- Internal URLs
+    
+- Intranet names
+    
+- Usernames
+    
+- Employee names
+    
+- Network shares
+    
+- Software
+    
+- Hardware
+    
+- Credentials
+    
+- Organizational information
+    
+
+> [!important]  
+> Save documents, screenshots, scan results and tool output as soon as you encounter them. Good assessment documentation prevents important evidence from being lost later.
+
+---
+
+# 📧 13. Hunting Email Addresses
+
+Example:
+
+```text
+intext:"@inlanefreight.com" inurl:inlanefreight.com
+```
+
+This discovered a contact page containing employees and their email addresses.
+
+The apparent naming convention was:
+
+```text
+first.last@inlanefreight.com
+```
+
+This provides an important transition:
+
+```text
+EMPLOYEE NAME
+      ↓
+EMAIL ADDRESS
+      ↓
+EMAIL SCHEMA
+      ↓
+USERNAME SCHEMA
+      ↓
+USERNAME LIST
+```
+
+Potential usernames can then be used for authorized authentication testing such as password spraying.
+
+---
+
+# 👤 14. Username Harvesting
+
+The source mentions **linkedin2username**.
+
+The idea is to take employee information and generate possible username combinations:
+
+```text
+flast
+first.last
+f.last
+```
+
+For example:
+
+```text
+John Smith
+   ↓
+jsmith
+john.smith
+j.smith
+```
+
+> [!warning]  
+> These are **candidate usernames**, not proof that accounts exist.
+> 
+> Authentication testing must remain within the engagement's scope and rules of engagement.
+
+---
+
+# 🔑 15. Credential Hunting
+
+**DeHashed** can be used to search breach data for:
+
+- Email addresses
+    
+- Usernames
+    
+- Cleartext passwords
+    
+- Password hashes
+    
+- Other leaked information
+    
+
+Example:
+
+```bash
+sudo python3 dehashed.py -q inlanefreight.local -p
+```
+
+The source notes that many credentials discovered through breach data will be old.
+
+However, occasionally a leaked password may still work against an externally exposed service using AD authentication.
+
+Potential services include:
+
+```text
+Citrix
+RDS
+OWA
+Microsoft 365
+VPN
+VMware Horizon
+Custom Applications
+```
+
+Mental model:
+
+```text
+BREACH DATA
+     ↓
+USERNAME
+     ↓
+PASSWORD / HASH
+     ↓
+CHECK AGE / RELEVANCE
+     ↓
+AUTHORIZED EXTERNAL SERVICE
+     ↓
+VALIDATE CREDENTIAL
+     ↓
+POTENTIAL FOOTHOLD
+```
+
+---
+
+# 🧪 16. Example — `inlanefreight.com`
+
+The example intentionally avoids heavy scanning such as:
+
+```text
+Nmap
+Vulnerability Scanners
+```
+
+The objective is to demonstrate **passive enumeration**.
+
+---
+
+## 🌐 16.1 BGP Information
+
+BGP information revealed:
+
+```text
+IP Address:
+134.209.24.248
+
+Mail Server:
+mail1.inlanefreight.com
+
+Nameservers:
+NS1.inlanefreight.com
+NS2.inlanefreight.com
+```
+
+---
+
+## 🔎 16.2 ViewDNS Validation
+
+Reverse-IP results returned:
+
+```text
+inlanefreight.com
+lycjg.us
+```
+
+The information matched the previously discovered IP data.
+
+> [!tip]  
+> **Cross-validation matters.**
+> 
+> When multiple independent sources agree, confidence in your reconnaissance data increases.
+
+---
+
+## 🌐 16.3 Nameserver Validation
+
+```bash
+nslookup ns1.inlanefreight.com
+```
+
+→ `178.128.39.165`
+
+```bash
+nslookup ns2.inlanefreight.com
+```
+
+→ `206.189.119.186`
+
+The IPs are recorded for further investigation, subject to scope.
+
+---
+
+## 📄 16.4 File Discovery
+
+```text
+filetype:pdf inurl:inlanefreight.com
+```
+
+Discovered:
+
+```text
+corporate goals and strategy - Inlanefreight
+```
+
+---
+
+## 📧 16.5 Email Discovery
+
+```text
+intext:"@inlanefreight.com" inurl:inlanefreight.com
+```
+
+Discovered employee contact information and the apparent:
+
+```text
+first.last
+```
+
+naming convention.
+
+---
+
+## 👤 16.6 Username Generation
+
+Use **linkedin2username** to generate candidate formats such as:
+
+```text
+flast
+first.last
+f.last
+```
+
+---
+
+## 🔑 16.7 Breach Data
+
+```bash
+sudo python3 dehashed.py -q inlanefreight.local -p
+```
+
+Potential output:
+
+```text
+email
+username
+password
+hashed_password
+name
+database_name
+```
+
+---
+
+# 🧠 17. The Complete External Recon Workflow
+
+```text
+                    🎯 TARGET
+                       │
+                       ▼
+                📜 SCOPE / ROE
+                       │
+                       ▼
+                🌎 PASSIVE RECON
+                       │
+       ┌───────────────┼───────────────┐
+       ▼               ▼               ▼
+    🌐 ASN/IP         🌐 DNS          📱 OSINT
+       │               │               │
+       ▼               ▼               ▼
+   NETBLOCKS         HOSTS          EMPLOYEES
+   PROVIDERS         MX/NS          TECHNOLOGY
+   CLOUD             SUBDOMAINS     JOB POSTS
+       │               │               │
+       └───────────────┼───────────────┘
+                       ▼
+                  📄 DOCUMENTS
+                       │
+                       ▼
+                👤 USERNAMES
+                       │
+                       ▼
+                 🔑 BREACH DATA
+                       │
+                       ▼
+                 🧠 CORRELATION
+                       │
+                       ▼
+               🎯 TARGETED TESTING
+                       │
+                       ▼
+              🔎 ACTIVE ENUMERATION
+                       │
+                       ▼
+                🆕 NEW DISCOVERY
+                       │
+                       └─────────────→ 🔄 REPEAT
+```
+
+---
+
+# 🔄 18. Enumeration Is Iterative
+
+Never think of enumeration as:
+
+```text
+Recon → Finished → Attack
+```
+
+Instead:
+
+```text
+Recon
+ ↓
+Discovery
+ ↓
+Analysis
+ ↓
+New Lead
+ ↓
+Recon Again
+ ↓
+New Discovery
+ ↓
+Targeted Enumeration
+ ↓
+New Lead
+ ↓
+Repeat
+```
+
+Example:
+
+```text
+📄 PUBLIC PDF
+      ↓
+👤 EMPLOYEE NAME
+      ↓
+📧 EMAIL FORMAT
+      ↓
+👤 USERNAME
+      ↓
+🔑 BREACH DATA
+      ↓
+🔐 CREDENTIAL
+      ↓
+🌐 EXTERNAL LOGIN
+      ↓
+🎯 AUTHORIZED TEST
+      ↓
+🔓 INITIAL ACCESS
+      ↓
+🏢 INTERNAL ENUMERATION
+```
+
+---
+
+# ⚠️ 19. Scope Decision Tree
+
+```text
+                    🔎 DISCOVERY
+                         │
+                         ▼
+                 Is it related to
+                   the customer?
+                    /       \
+                  NO         YES
+                  │           │
+                 STOP         ▼
+                       Is it in scope?
+                         /       \
+                       NO         YES
+                       │           │
+                      STOP         ▼
+                           Does the ROE
+                           permit testing?
+                             /      \
+                           NO        YES
+                           │          │
+                          STOP        ▼
+                                  🎯 TEST
+```
+
+> [!important]  
+> **Discovery does not equal authorization.**
+> 
+> This is one of the most important real-world penetration-testing principles in the entire reconnaissance phase.
+
+---
+
+# 🧠 20. Mental Model — External Recon as an Information Funnel
+
+```text
+                    🌎 EVERYTHING
+                         │
+                         ▼
+                    ORGANIZATION
+                         │
+                         ▼
+                   🌐 IP / ASN
+                         │
+                         ▼
+                     🌍 DNS
+                         │
+                         ▼
+                    🖥️ HOSTS
+                         │
+                         ▼
+               📄 DOCUMENTS / DATA
+                         │
+                         ▼
+                    👤 USERS
+                         │
+                         ▼
+                   🔑 CREDENTIALS
+                         │
+                         ▼
+                 🎯 VALID TARGET
+                         │
+                         ▼
+                    🔓 FOOTHOLD
+```
+
+> [!success]  
+> The goal is **not** to collect random information.
+> 
+> The goal is to connect individual discoveries until they form an **attack-relevant picture of the environment**.
+
+---
+
+# 📚 21. CPTS External Recon Cheat Sheet
+
+|Stage|Question|Examples|
 |---|---|---|
-|🌐 IP Space|ASN, netblocks, public IPs, cloud providers|Defines infrastructure and validates scope|
-|🌎 DNS|A/AAAA, MX, NS, SOA, subdomains|Discovers hosts and services|
-|👤 Schema|Email and username formats|Builds candidate user lists|
-|📄 Documents|PDFs, DOCX, XLSX, PPTX|May expose metadata, internal URLs, users, technology|
-|💼 Job Posts|Technologies, versions, infrastructure|Fingerprints the environment|
-|📱 Social Media|Employees, technologies, locations|Provides organizational intelligence|
-|💻 GitHub|Secrets, credentials, configuration|Can produce direct access|
-|☁️ Cloud Storage|Public buckets/containers|May expose sensitive data|
-|🔑 Breach Data|Passwords, hashes, usernames|May provide valid credentials|
-|🛰️ Hosting|CDN/cloud/shared infrastructure|Critical for scope validation|
+|🌐 IP Space|Where does the target's infrastructure live?|ASN, netblocks, cloud providers|
+|🌎 DNS|What hosts/services exist?|A, AAAA, MX, NS, subdomains|
+|🏢 Organization|How is the company structured?|Employees, offices, departments|
+|💼 Technology|What technologies are used?|SharePoint, Azure, enterprise applications|
+|📄 Documents|What has been publicly exposed?|PDF, DOCX, XLSX, PPTX|
+|👤 Identity|How are users named?|`first.last`, `flast`, `f.last`|
+|💻 Development|Did developers leak anything?|GitHub, code, configuration|
+|☁️ Cloud|Is storage publicly exposed?|S3, Azure storage|
+|🔑 Breach Data|Are credentials publicly available?|Passwords, hashes, usernames|
+|🎯 Validation|Can the information be used?|Authorized authentication testing|
+|🔄 Iteration|What did the discovery reveal next?|Return to recon and enumerate again|
 
 ---
 
-# ✅ 29. Key Takeaways
+# 🧠 22. Final CPTS Mental Model
+
+```text
+             🌐 EXTERNAL RECON
+                     │
+                     ▼
+          🔎 FIND INFORMATION
+                     │
+                     ▼
+          🧬 CORRELATE INFORMATION
+                     │
+                     ▼
+           👤 IDENTIFY USERS
+                     │
+                     ▼
+         🔑 IDENTIFY CREDENTIALS
+                     │
+                     ▼
+          🎯 VALIDATE SCOPE
+                     │
+                     ▼
+       🔐 TEST AUTHORIZED SERVICES
+                     │
+                     ▼
+             🔓 FOOTHOLD
+                     │
+                     ▼
+          🏢 INTERNAL ENUMERATION
+                     │
+                     ▼
+             🔄 REPEAT CYCLE
+```
 
 > [!success]
 > 
-> ### 🎯 CPTS-Ready Lessons
+> ### 🎯 Key Takeaways
 > 
-> 1. **Start passive and go wide.**
+> - **Start passive and go wide.**
 >     
->     - ASN
->         
->     - IP space
->         
->     - DNS
->         
->     - Websites
->         
->     - Social media
->         
->     - Documents
->         
->     - Breach data
->         
-> 2. **Validate everything.**
+> - Use **ASN/IP → DNS → OSINT → documents → users → breach data** as a natural progression.
 >     
->     - Do not rely on a single source.
->         
->     - Cross-reference DNS, BGP, ViewDNS, websites, and other sources.
->         
-> 3. **Build an information chain.**
+> - Use `nslookup` to validate DNS discoveries.
+>     
+> - Use search-engine dorks such as:
 >     
 >     ```text
->     DOMAIN
->       ↓
->     IP
->       ↓
->     HOST
->       ↓
->     DOCUMENT
->       ↓
->     EMPLOYEE
->       ↓
->     USERNAME
->       ↓
->     CREDENTIAL
->       ↓
->     ACCESS
+>     filetype:pdf inurl:target.com
+>     intext:"@target.com" inurl:target.com
 >     ```
 >     
-> 4. **Public information can directly affect exploitation.**
+> - Public documents can reveal **metadata, usernames, internal URLs, software and infrastructure**.
 >     
->     - Job postings reveal technologies.
->         
->     - Documents reveal internal information.
->         
->     - Websites reveal users.
->         
->     - GitHub can leak secrets.
->         
->     - Breach data can reveal credentials.
->         
-> 5. **Enumeration is iterative.**
+> - Job postings can fingerprint **technologies and versions**.
 >     
->     - Every discovery can create another enumeration path.
->         
->     - Revisit previous sources as new information becomes available.
->         
-> 6. **Scope always comes first.**
+> - Email naming conventions can become **username-generation rules**.
 >     
->     - A discovered IP is not automatically an authorized target.
->         
->     - Shared infrastructure is particularly dangerous.
->         
->     - Escalate unclear scope before interacting with questionable infrastructure.
->         
-> 7. **External recon prepares internal enumeration.**
+> - Breach data can provide potential **passwords, hashes and usernames**.
 >     
->     - External usernames and credentials can become the bridge into the internal AD environment.
->         
+> - Always **cross-reference discoveries** instead of trusting one source.
+>     
+> - Enumeration is **iterative**: every discovery can create another enumeration path.
+>     
+> - **Scope and authorization override everything else.**
+>     
 > 
 > ```text
-> 🌐 PASSIVE RECON
->       ↓
+> 🌐 RECON
+>   ↓
 > 🔎 ENUMERATE
->       ↓
+>   ↓
 > 🧠 CORRELATE
->       ↓
-> 👤 IDENTIFY USERS
->       ↓
-> 🔑 IDENTIFY CREDENTIALS
->       ↓
-> 🎯 VALIDATE IN-SCOPE SERVICES
->       ↓
-> 🔓 INITIAL ACCESS
->       ↓
-> 🏢 INTERNAL AD ENUMERATION
+>   ↓
+> 👤 IDENTIFY
+>   ↓
+> 🔑 CREDENTIALS
+>   ↓
+> 🎯 VALIDATE SCOPE
+>   ↓
+> 🔓 ACCESS
+>   ↓
+> 🏢 INTERNAL ENUMERATION
+>   ↓
+> 🔄 REPEAT
 > ```
