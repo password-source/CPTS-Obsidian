@@ -357,6 +357,23 @@ TARGET DOMAIN
 
 # 💻 8. `nslookup` Validation
 ### 🧰 Common `nslookup` Record Types
+                 DNS
+                  │
+          ┌───────┴────────┐
+          │ Query Records  │
+          └───────┬────────┘
+                  │
+       ┌──────────┼───────────┐
+       ▼          ▼           ▼
+      A/AAAA      MX          NS
+       │          │           │
+    IP address  Mail      DNS servers
+                           │
+       ┌───────────────────┼───────────────┐
+       ▼                   ▼               ▼
+      TXT                CNAME            SOA
+       │                   │               │
+   SPF / leaks       Alias target      Zone info
 
 | Record Type | Command                                  | What It Can Reveal                                  |
 | ----------- | ---------------------------------------- | --------------------------------------------------- |
