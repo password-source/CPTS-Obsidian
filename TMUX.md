@@ -1,0 +1,3 @@
+```
+nano ~/.tmux.conf
+```
