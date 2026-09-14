@@ -96,7 +96,7 @@ tar -xf <filename>.tar
 On Kali:
 
 ```bash
-sudo ligolo-proxy -selfcert
+sudo ./proxy -selfcert
 ```
 
 The proxy uses a self-signed certificate.
