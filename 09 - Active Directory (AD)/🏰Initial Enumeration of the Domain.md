@@ -1144,7 +1144,95 @@ Potential password-spraying targets
 > This is much more useful for later authentication testing.
 
 ---
+# 🛠️ 31. Kerbrute — GLIBC Compatibility Error Fix
 
+> [!warning] ⚠️ Error: `GLIBC` Version Mismatch  
+> If the precompiled Kerbrute binary fails to execute with an error similar to:
+> 
+> ```text
+> GLIBC_2.34 not found
+> ```
+> 
+> or:
+> 
+> ```text
+> GLIBC_2.32 not found
+> ```
+> 
+> the binary was compiled against a **newer version of GNU C Library (GLIBC)** than the version available on the current Linux system.
+> 
+> **Do not immediately upgrade GLIBC manually.** Replacing/upgrading the system C library can break other applications and potentially the entire OS.
+
+## 🔧 Use an Older Kerbrute Release
+
+Instead of using the incompatible binary, download **Kerbrute v1.0.3**, which can work on older environments.
+
+### 1️⃣ Remove the Existing Binary
+
+```bash
+rm -f kerbrute
+```
+
+### 2️⃣ Download Kerbrute v1.0.3
+
+```bash
+wget https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_amd64 -O kerbrute
+```
+
+### 3️⃣ Make It Executable
+
+```bash
+chmod +x kerbrute
+```
+
+### 4️⃣ Test It
+
+```bash
+./kerbrute
+```
+
+If the binary starts and displays the Kerbrute help/usage information, the compatibility problem is resolved.
+
+### 🧠 Mental Model
+
+```text
+Kerbrute binary
+      │
+      ▼
+Compiled against GLIBC 2.34+
+      │
+      ▼
+Your Parrot OS has older GLIBC
+      │
+      ▼
+❌ Binary won't execute
+      │
+      ▼
+Download older Kerbrute release
+      │
+      ▼
+v1.0.3
+      │
+      ▼
+chmod +x
+      │
+      ▼
+./kerbrute
+      │
+      ▼
+✅ Compatible binary
+```
+
+> [!tip] 💡 Alternative  
+> If an older release still doesn't work, compiling Kerbrute directly on the target Linux environment can avoid many precompiled-binary compatibility problems:
+> 
+> ```bash
+> git clone https://github.com/ropnop/kerbrute.git
+> cd kerbrute
+> make linux
+> ```
+> 
+> The key idea is **match the binary to the environment**, rather than modifying the system's GLIBC just to run one tool.
 # ⚙️ 21. SYSTEM Access as an Alternative Foothold
 
 Another major objective is obtaining:
