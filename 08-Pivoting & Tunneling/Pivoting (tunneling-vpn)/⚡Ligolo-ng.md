@@ -64,7 +64,7 @@ Ligolo-ng uses:
 Possible installation methods:
 
 ```bash
-sudo apt install ligolo-ng
+wget https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_proxy_0.9.1_linux_amd64.tar.gz
 ```
 
 Or:
