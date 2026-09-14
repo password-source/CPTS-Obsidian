@@ -80,7 +80,29 @@ chmod +x proxy
 
 - Download a precompiled release.
 
+### If you also need the Linux agent
 
+```
+wget https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_agent_0.9.1_linux_amd64.tar.gz
+```
+
+And extract:
+
+```
+tar -xvzf ligolo-ng_agent_0.9.1_linux_amd64.tar.gz
+```
+
+For a **Windows x64 agent**:
+
+```
+wget https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_agent_0.9.1_windows_amd64.zip
+```
+
+Then:
+
+```
+unzip ligolo-ng_agent_0.9.1_windows_amd64.zip
+```
 
 ---
 
