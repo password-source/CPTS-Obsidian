@@ -356,7 +356,19 @@ TARGET DOMAIN
 ---
 
 # 💻 8. `nslookup` Validation
+### 🧰 Common `nslookup` Record Types
 
+| Record Type | Command                                  | What It Can Reveal                                  |
+| ----------- | ---------------------------------------- | --------------------------------------------------- |
+| **A**       | `nslookup -type=A inlanefreight.com`     | IPv4 address of the domain                          |
+| **AAAA**    | `nslookup -type=AAAA inlanefreight.com`  | IPv6 address                                        |
+| **MX**      | `nslookup -type=MX inlanefreight.com`    | Mail servers                                        |
+| **NS**      | `nslookup -type=NS inlanefreight.com`    | Authoritative name servers                          |
+| **TXT**     | `nslookup -type=TXT inlanefreight.com`   | SPF, verification, security-related text            |
+| **CNAME**   | `nslookup -type=CNAME inlanefreight.com` | Canonical/alias target                              |
+| **SOA**     | `nslookup -type=SOA inlanefreight.com`   | Zone authority and DNS administration information   |
+| **PTR**     | `nslookup -type=PTR 134.209.24.248`      | Reverse DNS hostname                                |
+| **ANY**     | `nslookup -type=ANY inlanefreight.com`   | Attempts to request multiple available record types |
 After discovering:
 
 ```text
