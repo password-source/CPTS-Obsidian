@@ -1144,7 +1144,7 @@ Potential password-spraying targets
 > This is much more useful for later authentication testing.
 
 ---
-# 🛠️ 31. Kerbrute — GLIBC Compatibility Error Fix
+# 🛠️ 20.5. Kerbrute — GLIBC Compatibility Error Fix
 
 > [!warning] ⚠️ Error: `GLIBC` Version Mismatch  
 > If the precompiled Kerbrute binary fails to execute with an error similar to:
