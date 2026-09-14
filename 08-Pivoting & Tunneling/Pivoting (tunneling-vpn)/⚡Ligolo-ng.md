@@ -82,7 +82,6 @@ tar -xvzf ligolo-ng_proxy_0.9.1_linux_amd64.tar.gz
 tar -xf <filename>.tar
 ```
 
-```
 
 ---
 
