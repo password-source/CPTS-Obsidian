@@ -76,7 +76,6 @@ wget https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_p
 Extract archives:
 
 ```bash
-```
 tar -xvzf ligolo-ng_proxy_0.9.1_linux_amd64.tar.gz
 ```
 tar -xf <filename>.tar
