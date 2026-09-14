@@ -68,8 +68,6 @@ wget https://github.com/nicocha30/ligolo-ng/releases/download/v0.9.1/ligolo-ng_p
 ```
 
 
-- Compile from the official source.
-    
 - Download a precompiled release.
     
 
