@@ -373,7 +373,7 @@ TARGET DOMAIN
        ▼                   ▼               ▼
       TXT                CNAME            SOA
        │                   │               │
-   SPF / leaks       Alias target      Zone info
+	   SPF / leaks       Alias target      Zone info
 
 | Record Type | Command                                  | What It Can Reveal                                  |
 | ----------- | ---------------------------------------- | --------------------------------------------------- |
