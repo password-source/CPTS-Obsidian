@@ -1,0 +1,1 @@
+Typing `netstat -rn` will show us the networks accessible via the VPN.
