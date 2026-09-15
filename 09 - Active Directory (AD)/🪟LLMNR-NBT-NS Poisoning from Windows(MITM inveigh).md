@@ -815,7 +815,7 @@ This can become valuable for further enumeration.
 
 ---
 
-# 🔓 23. Cracking Captured NetNTLMv2
+# 🔓 17.5 Cracking Captured NetNTLMv2
 
 Once hashes have been collected, attempt offline cracking.
 
