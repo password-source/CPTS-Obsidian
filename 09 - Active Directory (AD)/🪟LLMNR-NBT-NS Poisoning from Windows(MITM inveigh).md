@@ -815,6 +815,35 @@ This can become valuable for further enumeration.
 
 ---
 
+# 🔓 23. Cracking Captured NetNTLMv2
+
+Once hashes have been collected, attempt offline cracking.
+
+The source uses:
+
+```bash
+hashcat -m 5600 forend_ntlmv2 /usr/share/wordlists/rockyou.txt
+```
+
+### Breakdown
+
+```text
+hashcat
+    ↓
+Password-cracking engine
+
+-m 5600
+    ↓
+NetNTLMv2 mode
+
+forend_ntlmv2
+    ↓
+File containing captured NetNTLMv2 material
+
+/usr/share/wordlists/rockyou.txt
+    ↓
+Dictionary used for the attack
+```
 # 🔁 18. Why Username Enumeration Matters
 
 The username list is useful even before attempting any password recovery.
