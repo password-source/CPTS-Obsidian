@@ -1,30 +1,5 @@
 
 
-with open("ad_attack_decision_tree.md", "w", encoding="utf-8") as f: f.write(content)
-
-print("Markdown file generated successfully.")
-
-````
-
-```text?code_stdout&code_event_index=1
-Markdown file generated successfully.
-
-````
-
-Your Markdown file is ready
-
-![MD icon](https://drive-thirdparty.googleusercontent.com/32/type/text/code)
-
-ad_attack_decision_tree
-
-MD
-
-  
-
-Gemini is AI and can make mistakes.
-
-Analyzing
-
 # Active Directory Attack Decision Tree
 
 ```text
