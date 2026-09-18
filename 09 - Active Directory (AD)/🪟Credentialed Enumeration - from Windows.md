@@ -1,307 +1,55 @@
-# 🪟 1. Credentialed Enumeration — from Windows
+# 🪟 1. Credentialed Enumeration — From Windows
 
-> [!info] Objective  
-> After obtaining a foothold in an Active Directory environment, a **low-privileged domain account** can be used to enumerate the domain from a Windows attack host.
+> [!info]  
+> **Objective:** Once we have valid domain credentials and access to a Windows host, we can perform extensive **Active Directory enumeration directly from Windows**.
 > 
-> The goal is to build a larger picture of:
+> The goal is not simply to find an immediate attack path. We want to build a complete picture of:
 > 
-> - 👤 Users and user attributes
+> - 👤 Users and service accounts
 >     
 > - 👥 Groups and nested group membership
 >     
-> - 🖥️ Computers and local administrator access
+> - 🖥️ Computers and administrative access
 >     
-> - 📜 GPOs
+> - 🔐 SPNs / potential Kerberoasting targets
 >     
-> - 🔐 ACLs and permissions
+> - 🧬 Trust relationships
 >     
-> - 🤝 Domain/forest trusts
+> - 📜 GPOs and ACLs
 >     
-> - 📂 SMB/file shares and sensitive files
+> - 📂 File shares and sensitive files
 >     
-> - 🎫 SPNs and potential Kerberoasting targets
+> - 🔑 Credentials and authentication material
 >     
-> - 🕸️ Relationships and attack paths through BloodHound
+> - 🕸️ Relationships between AD objects
+>     
+> - 🎯 Potential lateral and vertical movement paths
 >     
 > 
-> Not every finding directly enables an attack. Some findings are **informational or security-posture issues** that may still belong in a penetration-test report.
-
-> [!important] Mental Model  
-> **A valid domain credential is an enumeration key.**
-> 
-> ```text
-> 🔑 LOW-PRIV DOMAIN CREDENTIAL
->          │
->          ▼
-> 🧭 MAP THE DOMAIN
-> ├── Users / attributes
-> ├── Groups / membership
-> ├── Computers
-> ├── Trusts
-> └── GPOs / ACLs
->          │
->          ▼
-> 📂 FIND ACCESSIBLE RESOURCES
-> ├── SMB shares
-> ├── Sensitive files
-> └── Logged-on users
->          │
->          ▼
-> 🔐 FIND PRIVILEGE OPPORTUNITIES
-> ├── Local admin access
-> ├── Privileged groups
-> ├── SPNs
-> └── Nested memberships
->          │
->          ▼
-> 🕸️ CORRELATE RELATIONSHIPS
-> └── BloodHound / SharpHound
->          │
->          ▼
-> 🎯 IDENTIFY LATERAL / VERTICAL MOVEMENT PATHS
-> ```
+> The major Windows-side tools covered here are **ActiveDirectory PowerShell**, **PowerView**, **SharpView**, **Snaffler**, **SharpHound**, and **BloodHound**.
 
 ---
 
-# **they are not all doing the same job**. Think of them as different layers of AD enumeration:
+# 💻 2. Command Cheat Sheet
 
-|Tool|Main purpose|Mental model|
-|---|---|---|
-|**ActiveDirectory PowerShell Module**|Query AD directly|🗄️ **Ask AD for specific data**|
-|**PowerView**|Powerful AD enumeration|🔎 **Explore AD from many angles**|
-|**SharpView**|PowerView rewritten in C#|🥷 **PowerView functionality without PowerShell**|
-|**Snaffler**|Find sensitive files/credentials|📂 **Search the network for juicy files**|
-|**SharpHound**|Collect AD relationship data|🕸️ **Build the data for BloodHound**|
-|**BloodHound**|Analyze AD relationships|🧠 **Show attack paths / relationships visually**|
-
-### 1. ActiveDirectory PowerShell Module
-
-This is the **native Microsoft AD management module**.
-
-For example:
-
-```
-Get-ADDomain
-```
-
-→ "Tell me information about the current domain."
-
-```
-Get-ADUser -Filter *
-```
-
-→ "Give me AD users."
-
-```
-Get-ADGroupMember -Identity "Backup Operators"
-```
-
-→ "Who belongs to this group?"
-
-So you're basically **directly querying Active Directory**.
-
----
-
-### 2. PowerView
-
-PowerView gives you **much broader enumeration capabilities**.
-
-For example:
-
-```
-Get-DomainUser
-Get-DomainGroupMember
-Get-DomainTrustMapping
-Test-AdminAccess
-Get-DomainUser -SPN
-```
-
-Instead of simply asking:
-
-> "Give me this AD object."
-
-you're doing things like:
-
-> "Show me domain relationships, privileged groups, trusts, SPNs, where I have admin access, etc."
-
-So:
-
-**AD Module = direct AD queries**
-
-**PowerView = offensive/security-focused AD reconnaissance**
-
----
-
-### 3. SharpView
-
-SharpView is basically the **C# version of PowerView's functionality**.
-
-Instead of:
-
-```
-Get-DomainUser
-```
-
-you might use:
-
-```
-SharpView.exe Get-DomainUser
-```
-
-The important distinction is **execution method**, not what you're trying to discover.
-
-> PowerView → PowerShell  
-> SharpView → compiled C#
-
-This can be useful when PowerShell execution is restricted or you want to avoid relying on a PowerShell script.
-
----
-
-### 4. Snaffler
-
-Snaffler is different.
-
-It isn't primarily asking:
-
-> "What are the AD relationships?"
-
-It's looking for **interesting/sensitive files across accessible network resources**.
-
-Think:
-
-```
-AD enumeration
-     ↓
-Who are the users?
-Who are the admins?
-What groups exist?
-What systems exist?
-     ↓
-Snaffler
-     ↓
-What interesting files/credentials/configurations
-can I access?
-```
-
-So Snaffler is more about **finding sensitive information**, such as credentials or configuration files.
-
----
-
-### 5. SharpHound
-
-SharpHound is the **collector**.
-
-It goes around the AD environment and collects relationship information such as:
-
-```
-User → MemberOf → Group
-User → AdminTo → Computer
-Computer → HasSession → User
-Group → MemberOf → Group
-Domain → Trust → Domain
-```
-
-Then it packages that information for BloodHound.
-
-So:
-
-**SharpHound = collect**
-
----
-
-### 6. BloodHound
-
-BloodHound is the **analysis/visualization side**.
-
-You give BloodHound the data collected by SharpHound, and BloodHound helps you understand relationships like:
-
-```
-Low-privileged user
-       ↓
-Member of Group A
-       ↓
-Group A has privileges on Computer B
-       ↓
-Computer B
-       ↓
-Admin access
-       ↓
-Domain Admin
-```
-
-So:
-
-**SharpHound → gathers the evidence**
-
-**BloodHound → makes sense of the evidence**
-
----
-
-## 🧠 The big picture
-
-Think of your CPTS workflow like this:
-
-```
-                 ACTIVE DIRECTORY
-                        │
-          ┌─────────────┴─────────────┐
-          │                           │
-   AD PowerShell                  PowerView
-          │                           │
-   Specific queries             Broad enumeration
-          │                           │
-          └─────────────┬─────────────┘
-                        │
-                   AD INFORMATION
-                        │
-             ┌──────────┴──────────┐
-             │                     │
-         Snaffler             SharpHound
-             │                     │
-       Find sensitive         Collect AD
-          files/data          relationships
-                                   │
-                                   ↓
-                              BloodHound
-                                   │
-                                   ↓
-                         Analyze attack paths
-```
-
-### The key distinction for CPTS
-
-Don't think:
-
-> "Which one should I use?"
-
-Think:
-
-> **"What question am I trying to answer?"**
-
-- **Who/what exists in AD?** → AD Module / PowerView
-- **What are the trusts, groups, SPNs, privileges, etc.?** → PowerView
-- **Need PowerView functionality without PowerShell?** → SharpView
-- **Where are interesting files/credentials?** → Snaffler
-- **What relationships exist between users, groups, computers, sessions, ACLs, etc.?** → SharpHound
-- **What can I do with those relationships / where are the attack paths?** → BloodHound
-
-And this is why your original CPTS workflow says **learn the built-in AD module first**: it teaches you what the underlying AD objects and relationships actually mean. Then PowerView makes enumeration faster/broader, and BloodHound helps you correlate everything.
-# 🧰 2. Cheat Sheet — Commands
-
-## ActiveDirectory PowerShell Module
+## 🧰 ActiveDirectory PowerShell Module
 
 ```powershell
 Get-Module
 Import-Module ActiveDirectory
+
 Get-ADDomain
+
 Get-ADUser -Filter {ServicePrincipalName -ne "$null"} -Properties ServicePrincipalName
+
 Get-ADTrust -Filter *
-Get-ADGroup -Filter * | select name
+
+Get-ADGroup -Filter *
 Get-ADGroup -Identity "Backup Operators"
 Get-ADGroupMember -Identity "Backup Operators"
 ```
 
-## PowerView
+## 🧭 PowerView
 
 ```powershell
 Import-Module .\PowerView.ps1
@@ -309,64 +57,403 @@ Import-Module .\PowerView.ps1
 Get-DomainUser -Identity mmorgan -Domain inlanefreight.local | Select-Object -Property name,samaccountname,description,memberof,whencreated,pwdlastset,lastlogontimestamp,accountexpires,admincount,userprincipalname,serviceprincipalname,useraccountcontrol
 
 Get-DomainGroupMember -Identity "Domain Admins" -Recurse
+
 Get-DomainTrustMapping
+
 Test-AdminAccess -ComputerName ACADEMY-EA-MS01
+
 Get-DomainUser -SPN -Properties samaccountname,ServicePrincipalName
 ```
 
-## SharpView
+## 🪟 SharpView
 
 ```powershell
 .\SharpView.exe Get-DomainUser -Help
+
 .\SharpView.exe Get-DomainUser -Identity forend
 ```
 
-## Snaffler
+## 📂 Snaffler
 
 ```powershell
 Snaffler.exe -s -d inlanefreight.local -o snaffler.log -v data
+
 .\Snaffler.exe -d INLANEFREIGHT.LOCAL -s -v data
 ```
 
-## SharpHound
+## 🩸 SharpHound
 
 ```powershell
 .\SharpHound.exe --help
+
 .\SharpHound.exe -c All --zipfilename ILFREIGHT
 ```
 
-## BloodHound
+## 🩸 BloodHound
 
 ```text
 bloodhound
 ```
 
-> [!tip] CPTS Workflow  
-> Learn the **built-in AD module first**, then PowerView/SharpView, then Snaffler, and finally BloodHound/SharpHound for relationship analysis. The built-in tools teach you what the data actually means; BloodHound then helps correlate that data at scale.
+Useful built-in Analysis queries mentioned:
+
+```text
+Find Computers with Unsupported Operating Systems
+Find Computers where Domain Users are Local Admin
+```
 
 ---
 
-# 🧭 3. Initial Windows Enumeration Strategy
+# 🧭 3. Tool Roles & Differences
 
-The first toolset to understand is the **ActiveDirectory PowerShell module**.
+|Tool|Main purpose|Mental model|
+|---|---|---|
+|[ActiveDirectory PowerShell module](https://docs.microsoft.com/en-us/powershell/module/activedirectory/)|Native PowerShell-based AD enumeration and administration|🧰 Ask AD directly|
+|[PowerView](https://github.com/PowerShellMafia/PowerSploit/tree/master/Recon)|Broad AD reconnaissance and manual relationship discovery|🔎 Investigate AD manually|
+|SharpView|.NET port of PowerView functionality|🪟 PowerView without depending on PowerShell|
+|[Snaffler](https://github.com/SnaffCon/Snaffler)|Hunts accessible shares and files for sensitive information|📂 Search what the user can read|
+|[SharpHound](https://github.com/SpecterOps/SharpHound)|Collects AD relationship/attack-path data|🕸️ Collect graph data|
+|[BloodHound](https://github.com/SpecterOps/BloodHound)|Visualizes and analyzes AD relationships and attack paths|🧠 Understand the graph|
 
-[ActiveDirectory PowerShell Module](https://docs.microsoft.com/en-us/powershell/module/activedirectory/?view=windowsserver2022-ps&utm_source=chatgpt.com)
+## 🧠 The Big Picture
 
-It contains **147 cmdlets at the time of the source material** and provides native PowerShell functionality for administering and querying AD.
+```text
+                         WINDOWS HOST
+                              │
+              ┌───────────────┼────────────────┐
+              │               │                │
+              ↓               ↓                ↓
+       ActiveDirectory     PowerView       SharpView
+          Module               │                │
+              │                └──────┬─────────┘
+              │                       │
+              └───────────┬───────────┘
+                          ↓
+                 AD ENUMERATION DATA
+                          │
+             ┌────────────┴────────────┐
+             │                         │
+             ↓                         ↓
+         Snaffler                  SharpHound
+             │                         │
+      FILE / CREDENTIALS          RELATIONSHIPS
+             │                         │
+             │                         ↓
+             │                    BloodHound
+             │                         │
+             └──────────────┬──────────┘
+                            ↓
+                    CORRELATE INFORMATION
+                            ↓
+                    IDENTIFY WEAKNESSES
+                            ↓
+                   LATERAL / VERTICAL
+                       MOVEMENT
+```
 
-When landing on a Windows host—especially an administrator's workstation or server—check what modules are already available.
+> [!important]  
+> **SharpHound and BloodHound are not alternatives.**
+> 
+> ```text
+> SharpHound
+>     ↓
+> COLLECTS
+>     ↓
+> AD relationship data
+>     ↓
+> BloodHound
+>     ↓
+> ANALYZES / VISUALIZES
+>     ↓
+> Attack paths
+> ```
+> 
+> Likewise, **Snaffler is not another BloodHound**. It answers a different question:
+> 
+> ```text
+> BloodHound → "How are AD objects connected?"
+> Snaffler    → "What sensitive files can I access?"
+> ```
 
 ---
 
-## 🔎 4. Discover PowerShell Modules
+## 🔎 3.1 What Each Tool Is For
 
-The `Get-Module` cmdlet lists currently available/loaded modules and their exported commands.
+### 🛠️ ActiveDirectory PowerShell Module
 
-[Get-Module Documentation](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-module?view=powershell-7.2&utm_source=chatgpt.com)
+**What it is:**  
+A Microsoft PowerShell module containing AD-specific cmdlets for administering and querying Active Directory.
 
-### Discover Modules
+**Primary purpose:**  
+Perform direct AD queries using native PowerShell functionality.
+
+**Examples:**
 
 ```powershell
+Get-ADDomain
+Get-ADUser
+Get-ADGroup
+Get-ADGroupMember
+Get-ADTrust
+```
+
+**Mental model:**
+
+```text
+ActiveDirectory Module
+        ↓
+Ask Active Directory specific questions
+        ↓
+Users / Groups / Domain / Trusts / Objects
+```
+
+> [!tip]  
+> This is particularly useful when you land on a Windows system where the module is already available. You may not need to drop a separate offensive tool onto the host.
+
+---
+
+### 🛠️ PowerView
+
+**What it is:**  
+A PowerShell-based AD reconnaissance tool.
+
+**Primary purpose:**  
+Provide broader and more security-assessment-oriented enumeration than simply using individual native AD cmdlets.
+
+PowerView can enumerate:
+
+- Users
+    
+- Computers
+    
+- Groups
+    
+- OUs
+    
+- ACLs
+    
+- Trusts
+    
+- GPOs
+    
+- Sessions
+    
+- Local groups
+    
+- Shares
+    
+- Local administrator access
+    
+- SPNs
+    
+- File shares
+    
+- Foreign users/groups
+    
+- Domain relationships
+    
+
+**Mental model:**
+
+```text
+PowerView
+    ↓
+Broad AD reconnaissance
+    ↓
+Collect lots of individual pieces of information
+    ↓
+Manually correlate them
+```
+
+> [!important]  
+> PowerView often requires **more manual analysis than BloodHound**, but this manual approach can expose subtle configuration issues that may not be immediately obvious from a graph.
+
+---
+
+### 🛠️ SharpView
+
+**What it is:**  
+A **.NET port of PowerView**.
+
+**Mental model:**
+
+```text
+PowerView
+   ↓
+PowerShell implementation
+   ↓
+SharpView
+   ↓
+.NET implementation of similar functionality
+```
+
+It provides many of the same enumeration capabilities while being useful in situations where relying on PowerShell is undesirable or restricted.
+
+---
+
+### 🛠️ Snaffler
+
+**What it is:**  
+A tool for hunting accessible network shares and files for potentially sensitive information.
+
+**Primary purpose:**
+
+```text
+Domain computers
+      ↓
+Accessible shares
+      ↓
+Readable directories
+      ↓
+Interesting files
+      ↓
+Potential credentials / keys / configuration
+```
+
+It requires a domain-joined host or a domain-user context.
+
+---
+
+### 🛠️ SharpHound
+
+**What it is:**  
+The data collector for BloodHound.
+
+**Primary purpose:**  
+Collect information about relationships and permissions in the AD environment.
+
+It can collect information concerning:
+
+- Groups
+    
+- Local administrator relationships
+    
+- Sessions
+    
+- Logged-on users
+    
+- Trusts
+    
+- ACLs
+    
+- Containers
+    
+- RDP
+    
+- DCOM
+    
+- SPN targets
+    
+- PowerShell Remoting
+    
+- GPO-related relationships
+    
+
+**Mental model:**
+
+```text
+SharpHound
+    ↓
+COLLECT
+    ↓
+Relationship data
+    ↓
+JSON dataset
+    ↓
+BloodHound
+```
+
+---
+
+### 🛠️ BloodHound
+
+**What it is:**  
+An open-source AD relationship-analysis and visualization platform.
+
+**Primary purpose:**  
+Take collected AD information and make relationships and potential attack paths easier to understand.
+
+**Mental model:**
+
+```text
+Raw AD information
+        ↓
+Relationships
+        ↓
+Graph
+        ↓
+BloodHound
+        ↓
+"What connects to what?"
+        ↓
+Potential attack paths
+```
+
+---
+
+# 🎯 4. The Core Methodology
+
+Credentialed enumeration is about moving from:
+
+```text
+"I have valid credentials."
+          ↓
+"What does this account have access to?"
+          ↓
+"What exists in the domain?"
+          ↓
+"What relationships exist?"
+          ↓
+"What sensitive information can I access?"
+          ↓
+"What systems can I administer?"
+          ↓
+"What accounts have elevated privileges?"
+          ↓
+"What trusts connect this domain to others?"
+          ↓
+"What attack paths can I identify?"
+```
+
+> [!info]  
+> **Credentialed enumeration is reconnaissance with context.**
+> 
+> An unauthenticated scan might tell you that a machine exists.
+> 
+> A valid domain account can potentially tell you:
+> 
+> - which groups it belongs to,
+>     
+> - which shares it can access,
+>     
+> - where administrators are logged in,
+>     
+> - which machines it can administer,
+>     
+> - which trusts exist,
+>     
+> - which service accounts exist,
+>     
+> - which accounts have SPNs,
+>     
+> - and how AD objects relate to each other.
+>     
+
+---
+
+# 🧰 5. ActiveDirectory PowerShell Module
+
+## 🔎 5.1 Discovering Available Modules
+
+The first step is determining what PowerShell modules are available.
+
+```powershell
+Get-Module
+```
+
+Example:
+
+```text
         powershell
 PS C:\htb> Get-Module
 
@@ -374,27 +461,32 @@ ModuleType Version    Name                                ExportedCommands
 ---------- -------    ----                                ----------------
 Manifest   3.1.0.0    Microsoft.PowerShell.Utility        {Add-Member, Add-Type, Clear-Variable, Compare-Object...}
 Script     2.0.0      PSReadline                          {Get-PSReadLineKeyHandler, Get-PSReadLineOption, Remove-PS...
-
-
 ```
 
-The `ActiveDirectory` module is not yet loaded.
+`Get-Module` can show available/loaded modules, versions, and exported commands.
 
-Load it with:
+> [!tip]  
+> This is useful beyond AD enumeration. When landing on a Windows host, checking installed modules can reveal useful capabilities, including Git modules or custom administrator scripts.
+
+---
+
+## 📥 5.2 Loading the ActiveDirectory Module
+
+If the module is not loaded:
 
 ```powershell
 Import-Module ActiveDirectory
 ```
 
-Then verify:
+Then:
 
 ```powershell
 Get-Module
 ```
 
-### Load ActiveDirectory Module
+Example:
 
-```powershell
+```text
         powershell
 PS C:\htb> Import-Module ActiveDirectory
 PS C:\htb> Get-Module
@@ -403,27 +495,42 @@ ModuleType Version    Name                                ExportedCommands
 ---------- -------    ----                                ----------------
 Manifest   1.0.1.0    ActiveDirectory                     {Add-ADCentralAccessPolicyMember, Add-ADComputerServiceAcc...
 Manifest   3.1.0.0    Microsoft.PowerShell.Utility        {Add-Member, Add-Type, Clear-Variable, Compare-Object...}
-Script     2.0.0      PSReadline                          {Get-PSReadLineKeyHandler, Get-PSReadLineOption, Remove-PS...  
-
-
+Script     2.0.0      PSReadline                          {Get-PSReadLineKeyHandler, Get-PSReadLineOption, Remove-PS...
 ```
-
-> [!important] Why Start Here?  
-> Native modules can provide extensive AD visibility **without first dropping a dedicated enumeration tool onto the host**. This can be useful during an assessment where tool transfer is restricted or where the tester wants to understand what is already available.
 
 ---
 
-# 🌐 5. Get Domain Information
+# 🌐 6. Domain Enumeration
 
-[Get-ADDomain Documentation](https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-addomain?view=windowsserver2022-ps&utm_source=chatgpt.com)
+## 🔎 6.1 Get-ADDomain
 
 ```powershell
-PS C:\htb> Get-ADDomain
+Get-ADDomain
 ```
 
-### Important Output
+This returns information about the current AD domain.
+
+Important fields include:
+
+|Field|What it tells you|
+|---|---|
+|`DNSRoot`|DNS name of the domain|
+|`NetBIOSName`|NetBIOS domain name|
+|`DomainSID`|Security identifier of the domain|
+|`DomainMode`|Domain functional level|
+|`Forest`|Forest containing the domain|
+|`ChildDomains`|Child domains|
+|`DomainControllersContainer`|Location of domain controller objects|
+|`PDCEmulator`|DC holding the PDC Emulator role|
+|`RIDMaster`|DC holding the RID Master role|
+|`InfrastructureMaster`|DC holding the Infrastructure Master role|
+|`ReplicaDirectoryServers`|Domain controllers participating in replication|
+
+Example:
 
 ```text
+PS C:\htb> Get-ADDomain
+
 AllowedDNSSuffixes                 : {}
 ChildDomains                       : {LOGISTICS.INLANEFREIGHT.LOCAL}
 ComputersContainer                 : CN=Computers,DC=INLANEFREIGHT,DC=LOCAL
@@ -437,9 +544,9 @@ ForeignSecurityPrincipalsContainer : CN=ForeignSecurityPrincipals,DC=INLANEFREIG
 Forest                             : INLANEFREIGHT.LOCAL
 InfrastructureMaster               : ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL
 LastLogonReplicationInterval       :
-LinkedGroupPolicyObjects            : {cn={DDBB8574-E94E-4525-8C9D-ABABE31223D0},cn=policies,cn=system,DC=INLANEFREIGHT,
-                                      DC=LOCAL, CN={31B2F340-016D-11D2-945F-00C04FB984F9},CN=Policies,CN=System,DC=INLANEFREIGHT,
-                                      DC=LOCAL}
+LinkedGroupPolicyObjects           : {cn={DDBB8574-E94E-4525-8C9D-ABABE31223D0},cn=policies,cn=system,DC=INLANEFREIGHT,
+                                     DC=LOCAL, CN={31B2F340-016D-11D2-945F-00C04FB984F9},CN=Policies,CN=System,DC=INLAN
+                                     EFREIGHT,DC=LOCAL}
 LostAndFoundContainer              : CN=LostAndFound,DC=INLANEFREIGHT,DC=LOCAL
 ManagedBy                          :
 Name                               : INLANEFREIGHT
@@ -454,45 +561,31 @@ ReadOnlyReplicaDirectoryServers    : {}
 ReplicaDirectoryServers            : {ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL}
 RIDMaster                          : ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL
 SubordinateReferences              : {DC=LOGISTICS,DC=INLANEFREIGHT,DC=LOCAL,
-                                      DC=ForestDnsZones,DC=INLANEFREIGHT,DC=LOCAL,
-                                      DC=DomainDnsZones,DC=INLANEFREIGHT,DC=LOCAL,
-                                      CN=Configuration,DC=INLANEFREIGHT,DC=LOCAL}
+                                     DC=ForestDnsZones,DC=INLANEFREIGHT,DC=LOCAL,
+                                     DC=DomainDnsZones,DC=INLANEFREIGHT,DC=LOCAL,
+                                     CN=Configuration,DC=INLANEFREIGHT,DC=LOCAL}
 SystemsContainer                   : CN=System,DC=INLANEFREIGHT,DC=LOCAL
 UsersContainer                     : CN=Users,DC=INLANEFREIGHT,DC=LOCAL
 ```
 
-### 🧠 What Matters
-
-|Property|Why it matters|
-|---|---|
-|`DNSRoot`|Current domain name|
-|`DomainSID`|Security identifier for the domain|
-|`DomainMode`|Domain functional level|
-|`ChildDomains`|Reveals child domains|
-|`Forest`|Identifies the forest|
-|`DomainControllersContainer`|Location of DC objects|
-|`PDCEmulator`|Identifies the PDC Emulator|
-|`RIDMaster`|Identifies the RID Master|
-|`ReplicaDirectoryServers`|Shows domain replication servers|
-|`LinkedGroupPolicyObjects`|Shows GPO relationships|
-|`ForeignSecurityPrincipalsContainer`|Indicates where foreign security principals are represented|
-
-> [!important] Trust / Domain Context  
-> `ChildDomains` tells us whether the current domain has child domains. This is different from a **trust relationship**: a child domain is part of the same forest hierarchy, while a trust describes a relationship allowing authentication/authorization between domains or forests.
+> [!important]  
+> `ChildDomains` immediately tells us that `LOGISTICS.INLANEFREIGHT.LOCAL` exists beneath the current domain.
 
 ---
 
-# 🎫 6. Find Users With SPNs
+# 🔐 7. Finding Accounts With SPNs
 
-[Get-ADUser Documentation](https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-aduser?view=windowsserver2022-ps&utm_source=chatgpt.com)
-
-A `ServicePrincipalName` (SPN) identifies a service instance associated with an account.
-
-Filtering for users with an SPN is useful because these accounts **may be susceptible to Kerberoasting**, which is covered later in the module.
+## 🎯 Get-ADUser + ServicePrincipalName
 
 ```powershell
-PS C:\htb> Get-ADUser -Filter {ServicePrincipalName -ne "$null"} -Properties ServicePrincipalName
+Get-ADUser -Filter {ServicePrincipalName -ne "$null"} -Properties ServicePrincipalName
+```
 
+This filters users whose `ServicePrincipalName` attribute is populated.
+
+Example:
+
+```text
 DistinguishedName    : CN=adfs,OU=Service Accounts,OU=Corp,DC=INLANEFREIGHT,DC=LOCAL
 Enabled              : True
 GivenName            : Sharepoint
@@ -516,115 +609,131 @@ ServicePrincipalName : {backupjob/veam001.inlanefreight.local}
 SID                  : S-1-5-21-3842939050-3880317879-2865463114-5220
 Surname              : Systemmailbox 8Cc370d3-822A-4Ab8-A926-Bb94bd0641a9
 UserPrincipalName    :
-
-<SNIP>
 ```
 
-> [!tip] CPTS Connection  
-> During AD enumeration, **SPN present → identify service account → consider Kerberoasting**. Don't assume every SPN account is vulnerable; this enumeration step identifies candidates.
+> [!important]  
+> A user account with an SPN can be a **potential Kerberoasting target**.
+> 
+> This command **does not perform Kerberoasting**. It identifies accounts whose attributes indicate that they may be relevant to the technique.
+
+```text
+LDAP / AD
+   ↓
+Find user accounts
+   ↓
+Filter ServicePrincipalName != null
+   ↓
+Potential service accounts
+   ↓
+Investigate
+   ↓
+Potential Kerberoasting target
+```
 
 ---
 
-# 🤝 7. Trust Enumeration
+# 🧬 8. Trust Enumeration
 
-[Get-ADTrust Documentation](https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adtrust?view=windowsserver2022-ps&utm_source=chatgpt.com)
+## 🔎 Get-ADTrust
 
 ```powershell
-PS C:\htb> Get-ADTrust -Filter *
+Get-ADTrust -Filter *
 ```
 
-### Output
+Example:
 
 ```text
 Direction               : BiDirectional
 DisallowTransivity      : False
 DistinguishedName       : CN=LOGISTICS.INLANEFREIGHT.LOCAL,CN=System,DC=INLANEFREIGHT,DC=LOCAL
-ForestTransitive         : False
+ForestTransitive        : False
 IntraForest             : True
-IsTreeParent             : False
-IsTreeRoot               : False
-Name                     : LOGISTICS.INLANEFREIGHT.LOCAL
+IsTreeParent            : False
+IsTreeRoot              : False
+Name                    : LOGISTICS.INLANEFREIGHT.LOCAL
 ObjectClass              : trustedDomain
 ObjectGUID               : f48a1169-2e58-42c1-ba32-a6ccb10057ec
-SelectiveAuthentication  : False
-SIDFilteringForestAware  : False
-SIDFilteringQuarantined  : False
-Source                   : DC=INLANEFREIGHT,DC=LOCAL
-Target                   : LOGISTICS.INLANEFREIGHT.LOCAL
-TGTDelegation            : False
-TrustAttributes          : 32
-TrustedPolicy            :
-TrustingPolicy           :
-TrustType                : Uplevel
-UplevelOnly              : False
+SelectiveAuthentication : False
+SIDFilteringForestAware : False
+SIDFilteringQuarantined : False
+Source                  : DC=INLANEFREIGHT,DC=LOCAL
+Target                  : LOGISTICS.INLANEFREIGHT.LOCAL
+TGTDelegation           : False
+TrustAttributes         : 32
+TrustedPolicy           :
+TrustingPolicy          :
+TrustType               : Uplevel
+UplevelOnly             : False
 UsesAESKeys              : False
-UsesRC4Encryption        : False
+UsesRC4Encryption       : False
 
 Direction               : BiDirectional
-DisallowTransivity       : False
-DistinguishedName        : CN=FREIGHTLOGISTICS.LOCAL,CN=System,DC=INLANEFREIGHT,DC=LOCAL
-ForestTransitive         : True
+DisallowTransivity      : False
+DistinguishedName       : CN=FREIGHTLOGISTICS.LOCAL,CN=System,DC=INLANEFREIGHT,DC=LOCAL
+ForestTransitive        : True
 IntraForest             : False
-IsTreeParent             : False
-IsTreeRoot               : False
-Name                     : FREIGHTLOGISTICS.LOCAL
+IsTreeParent            : False
+IsTreeRoot              : False
+Name                    : FREIGHTLOGISTICS.LOCAL
 ObjectClass              : trustedDomain
-ObjectGUID               : 1597717f-89b7-49b8-9cd9-0801d52475ca
-SelectiveAuthentication  : False
-SIDFilteringForestAware  : False
-SIDFilteringQuarantined  : False
-Source                   : DC=INLANEFREIGHT,DC=LOCAL
-Target                   : FREIGHTLOGISTICS.LOCAL
-TGTDelegation            : False
-TrustAttributes          : 8
+ObjectGUID              : 1597717f-89b7-49b8-9cd9-0801d52475ca
+SelectiveAuthentication : False
+SIDFilteringForestAware : False
+SIDFilteringQuarantined : False
+Source                  : DC=INLANEFREIGHT,DC=LOCAL
+Target                  : FREIGHTLOGISTICS.LOCAL
+TGTDelegation           : False
+TrustAttributes         : 8
 TrustedPolicy            :
-TrustingPolicy            :
-TrustType                : Uplevel
-UplevelOnly              : False
+TrustingPolicy           :
+TrustType               : Uplevel
+UplevelOnly             : False
 UsesAESKeys              : False
-UsesRC4Encryption        : False
+UsesRC4Encryption       : False
 ```
 
-### 🧠 Read the Important Fields
+### 🧠 Important Trust Fields
 
 |Field|Meaning|
 |---|---|
-|`Direction`|Direction of the trust|
+|`Direction`|Direction of the trust relationship|
 |`IntraForest`|Indicates a trust within the same forest|
-|`ForestTransitive`|Indicates forest-transitive behavior|
-|`Source`|Domain initiating/owning the trust object|
+|`ForestTransitive`|Indicates a forest-transitive trust|
+|`Source`|Domain establishing the trust relationship|
 |`Target`|Domain on the other side|
 |`TrustType`|Type of trust|
+|`SIDFiltering...`|Information about SID filtering|
 |`SelectiveAuthentication`|Whether selective authentication is configured|
-|`SIDFilteringForestAware`|SID-filtering configuration|
-|`TGTDelegation`|TGT delegation setting|
 
-> [!important] CPTS Focus  
-> Trust enumeration expands the attack surface beyond the current domain.
+> [!important]  
+> Trust enumeration expands the scope of our mental model.
 > 
-> ```text
-> CURRENT DOMAIN
->      │
->      ├── Child / same-forest domains
->      │
->      └── External / other-forest trusts
->              │
->              ▼
->       Additional AD environments
-> ```
+> We are no longer asking only:
 > 
-> Later in the module, trust relationships become relevant when examining **child-to-parent** and **cross-forest** attack paths.
+> **"What exists inside this domain?"**
+> 
+> We are also asking:
+> 
+> **"What other domains can this environment communicate with through trust relationships?"**
+
+```text
+CURRENT DOMAIN
+      │
+      ├── Child Domain
+      │      └── LOGISTICS.INLANEFREIGHT.LOCAL
+      │
+      └── External / Other Forest
+             └── FREIGHTLOGISTICS.LOCAL
+```
 
 ---
 
-# 👥 8. Group Enumeration
+# 👥 9. Group Enumeration
 
-[Get-ADGroup Documentation](https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adgroup?view=windowsserver2022-ps&utm_source=chatgpt.com)
-
-Enumerate all groups:
+## 🔎 List All Groups
 
 ```powershell
-PS C:\htb> Get-ADGroup -Filter * | select name
+Get-ADGroup -Filter * | select name
 ```
 
 Example:
@@ -664,39 +773,21 @@ Domain Admins
 <SNIP>
 ```
 
-### 🎯 Groups Worth Investigating
-
-- `Domain Admins`
-    
-- `Enterprise Admins`
-    
-- `Schema Admins`
-    
-- `Administrators`
-    
-- `Backup Operators`
-    
-- `Remote Management Users`
-    
-- `Remote Desktop Users`
-    
-- `Hyper-V Administrators`
-    
-- `Certificate Service DCOM Access`
-    
-- Other custom administrative/security groups
-    
-
-> [!warning] Don't Only Look at Domain Admins  
-> Built-in or custom groups can provide important privileges without being named `Domain Admins`. Always examine **membership and effective privileges**, not merely the group name.
+This provides the **group inventory**.
 
 ---
 
-# 🔍 9. Detailed Group Information
+## 🔎 9.1 Detailed Group Information
+
+Once an interesting group is identified:
 
 ```powershell
-PS C:\htb> Get-ADGroup -Identity "Backup Operators"
+Get-ADGroup -Identity "Backup Operators"
+```
 
+Example:
+
+```text
 DistinguishedName : CN=Backup Operators,CN=Builtin,DC=INLANEFREIGHT,DC=LOCAL
 GroupCategory     : Security
 GroupScope        : DomainLocal
@@ -707,30 +798,15 @@ SamAccountName    : Backup Operators
 SID               : S-1-5-32-551
 ```
 
-This gives additional context such as:
-
-- Group scope
-    
-- Group category
-    
-- SID
-    
-- Distinguished Name
-    
-- Object GUID
-    
-
 ---
 
-# 👤 10. Group Membership
-
-[Get-ADGroupMember Documentation](https://docs.microsoft.com/en-us/powershell/module/activedirectory/get-adgroupmember?view=windowsserver2022-ps&utm_source=chatgpt.com)
+## 👤 9.2 Enumerating Group Members
 
 ```powershell
-PS C:\htb> Get-ADGroupMember -Identity "Backup Operators"
+Get-ADGroupMember -Identity "Backup Operators"
 ```
 
-Output:
+Example:
 
 ```text
 distinguishedName : CN=BACKUPAGENT,OU=Service Accounts,OU=Corp,DC=INLANEFREIGHT,DC=LOCAL
@@ -741,64 +817,51 @@ SamAccountName    : backupagent
 SID               : S-1-5-21-3842939050-3880317879-2865463114-5220
 ```
 
-`backupagent` is a member of `Backup Operators`.
-
-> [!important] Why This Matters  
-> A service account may look uninteresting until its **group membership** is examined.
-> 
-> ```text
-> backupagent
->      │
->      ▼
-> Backup Operators
->      │
->      ▼
-> Potentially significant privileges
-> ```
-> 
-> The source specifically notes that compromising this service account could provide a path toward domain takeover. The exact path would still need to be validated during the assessment.
-
----
-
-# 🧠 11. Why Manual AD Enumeration Gets Tedious
-
-The ActiveDirectory module is important because it teaches the underlying AD objects and relationships.
-
-However:
+This reveals that:
 
 ```text
-Users
-  ↓
-Groups
-  ↓
-Nested Groups
-  ↓
-Computers
-  ↓
-Sessions
-  ↓
-ACLs
-  ↓
-GPOs
-  ↓
-Trusts
-  ↓
-Local Admin Rights
+backupagent
+    ↓
+Backup Operators
+    ↓
+Potentially elevated capabilities
 ```
 
-quickly becomes **too much data to manually correlate**.
-
-This is where tools such as **PowerView** and especially **BloodHound** become valuable.
+> [!warning]  
+> Group membership alone does not automatically mean that an account can immediately compromise the domain. The **effective permissions and privileges** granted by the group must be understood in context.
 
 ---
 
-# 🕵️ 12. PowerView
+# 🧠 10. Why Group Enumeration Matters
 
-[PowerView / PowerSploit Recon](https://github.com/PowerShellMafia/PowerSploit/tree/master/Recon?utm_source=chatgpt.com)
+The methodology is:
 
-[PowerView in HTB Academy](https://academy.hackthebox.com/course/preview/active-directory-powerview?utm_source=chatgpt.com)
+```text
+LIST GROUPS
+    ↓
+IDENTIFY INTERESTING GROUP
+    ↓
+ENUMERATE MEMBERS
+    ↓
+CHECK NESTED MEMBERSHIP
+    ↓
+UNDERSTAND EFFECTIVE PRIVILEGES
+    ↓
+IDENTIFY ACCOUNTS WORTH INVESTIGATING
+```
 
-PowerView is a PowerShell tool for gaining situational awareness within an AD environment.
+The same process can be repeated against other groups.
+
+The problem is scale.
+
+> [!info]  
+> In a large domain, manually running commands for every group can generate an enormous amount of information. This is one of the reasons specialized tools such as **PowerView, SharpHound, and BloodHound** become valuable.
+
+---
+
+# 🔎 11. PowerView
+
+[PowerView](https://github.com/PowerShellMafia/PowerSploit/tree/master/Recon) is a PowerShell-based tool designed for gaining **situational awareness in Active Directory**.
 
 It can enumerate:
 
@@ -808,34 +871,31 @@ It can enumerate:
     
 - 👥 Groups
     
-- 🔐 ACLs
+- 📜 ACLs
     
-- 🤝 Trusts
+- 🧬 Trusts
     
 - 📂 Shares
     
 - 🔑 Password-related information
     
-- 🎫 SPNs / Kerberoasting candidates
+- 🎫 SPNs
     
-- 👤 User locations/sessions
+- 👨‍💻 Logged-on users
     
 - 🛡️ Local administrator access
     
 
-Compared with BloodHound:
-
-|PowerView|BloodHound|
-|---|---|
-|Manual investigation|Relationship-oriented graph|
-|Powerful individual queries|Correlates many relationships|
-|Great for targeted enumeration|Great for attack-path discovery|
-|Can identify subtle misconfigurations|Makes complex relationships easier to visualize|
-|PowerShell-based|Collector + graph database/GUI|
+> [!important]  
+> The major difference from BloodHound is the **analysis model**.
+> 
+> **PowerView** gives us many individual pieces of information that we manually correlate.
+> 
+> **BloodHound** is designed around collecting relationships and visualizing those relationships as a graph.
 
 ---
 
-## 📊 13. PowerView Function Cheat Sheet
+## 📊 11.1 PowerView Functions
 
 |**CommandDescription**||
 |---|---|
@@ -874,24 +934,39 @@ Compared with BloodHound:
 |`Get-DomainForeignGroupMember`|Enumerates groups with users outside of the group's domain and returns each foreign member|
 |`Get-DomainTrustMapping`|Will enumerate all trusts for the current domain and any others seen.|
 
-> [!tip] PowerView Mental Model  
-> **PowerView = manually query the exact AD relationship you are interested in.**
+> [!tip]  
+> Think of the PowerView functions as specialized questions you can ask the domain:
 > 
-> BloodHound is excellent when you don't yet know which relationship matters. PowerView is excellent when you want to investigate a specific object or relationship in detail.
+> ```text
+> Get-DomainUser              → Who are the users?
+> Get-DomainGroup             → What groups exist?
+> Get-DomainGroupMember       → Who belongs to this group?
+> Get-DomainComputer          → What computers exist?
+> Get-DomainTrust             → What trusts exist?
+> Get-DomainTrustMapping      → What does the trust topology look like?
+> Get-NetShare                → What shares exist?
+> Test-AdminAccess            → Where am I admin?
+> Get-DomainUser -SPN         → Which users have SPNs?
+> ```
 
 ---
 
-# 👤 14. Detailed Domain User Enumeration
+# 👤 12. PowerView User Enumeration
 
-[PowerView Get-DomainUser Documentation](https://powersploit.readthedocs.io/en/latest/Recon/Get-DomainUser/?utm_source=chatgpt.com)
+Import PowerView:
 
 ```powershell
-PS C:\Windows\system32> cd C:\Tools\
-PS C:\Tools> Import-Module .\PowerView.ps1
-PS C:\htb> Get-DomainUser -Identity mmorgan -Domain inlanefreight.local | Select-Object -Property name,samaccountname,description,memberof,whencreated,pwdlastset,lastlogontimestamp,accountexpires,admincount,userprincipalname,serviceprincipalname,useraccountcontrol
+cd C:\Tools\
+Import-Module .\PowerView.ps1
 ```
 
-Output:
+Then query a specific user:
+
+```powershell
+Get-DomainUser -Identity mmorgan -Domain inlanefreight.local | Select-Object -Property name,samaccountname,description,memberof,whencreated,pwdlastset,lastlogontimestamp,accountexpires,admincount,userprincipalname,serviceprincipalname,useraccountcontrol
+```
+
+Example:
 
 ```text
 name                 : Matthew Morgan
@@ -912,44 +987,32 @@ mail                 :
 useraccountcontrol   : NORMAL_ACCOUNT, DONT_EXPIRE_PASSWORD, DONT_REQ_PREAUTH
 ```
 
-### 🔎 Important Fields
+### 🔎 Important Attributes
 
-|Field|Why inspect it|
+|Attribute|Why it matters|
 |---|---|
-|`samaccountname`|Windows account name|
-|`memberof`|Group memberships|
-|`whencreated`|Account creation time|
-|`pwdlastset`|Password modification timestamp|
-|`lastlogontimestamp`|Approximate recent logon information|
+|`samaccountname`|Account's legacy/Windows logon name|
+|`memberof`|Groups the user directly belongs to|
+|`pwdlastset`|Password last-set information|
+|`lastlogontimestamp`|Approximate last logon information|
 |`accountexpires`|Account expiration|
-|`admincount`|Indicates association with protected/privileged group administration|
+|`admincount`|Indicates special protection associated with privileged accounts/groups|
 |`userprincipalname`|User's UPN|
 |`serviceprincipalname`|SPNs associated with the account|
-|`useraccountcontrol`|Important account-control flags|
+|`useraccountcontrol`|Account configuration flags|
 
-The example shows:
-
-```text
-admincount           : 1
-useraccountcontrol   : NORMAL_ACCOUNT, DONT_EXPIRE_PASSWORD, DONT_REQ_PREAUTH
-```
-
-These attributes are worth investigating further.
-
-> [!warning] Attribute ≠ Immediate Exploit  
-> Enumeration tells you **what exists**. An interesting attribute does not automatically mean exploitation is possible. Validate the surrounding configuration and permissions.
+> [!warning]  
+> `admincount : 1` should be treated as an **interesting indicator**, not automatically interpreted as "this user is currently a Domain Admin." It indicates that the account has been associated with protected administrative groups and requires further enumeration.
 
 ---
 
-# 👥 15. Recursive Group Membership
-
-[PowerView Get-DomainGroupMember Documentation](https://powersploit.readthedocs.io/en/latest/Recon/Get-DomainGroupMember/?utm_source=chatgpt.com)
+# 👥 13. Recursive Group Membership
 
 ```powershell
-PS C:\htb> Get-DomainGroupMember -Identity "Domain Admins" -Recurse
+Get-DomainGroupMember -Identity "Domain Admins" -Recurse
 ```
 
-The `-Recurse` switch is extremely important because AD groups can contain **other groups**.
+The `-Recurse` switch is important because groups can contain **other groups**.
 
 Example:
 
@@ -975,7 +1038,7 @@ MemberSID               : S-1-5-21-3842939050-3880317879-2865463114-5228
 GroupDomain             : INLANEFREIGHT.LOCAL
 GroupName               : Secadmins
 GroupDistinguishedName  : CN=Secadmins,OU=Security Groups,OU=Corp,DC=INLANEFREIGHT,DC=LOCAL
-MemberDomain             : INLANEFREIGHT.LOCAL
+MemberDomain            : INLANEFREIGHT.LOCAL
 MemberName              : spong1990
 MemberDistinguishedName : CN=Maggie
                           Jablonski,OU=Operations,OU=Logistics-HK,OU=Employees,OU=Corp,DC=INLANEFREIGHT,DC=LOCAL
@@ -989,40 +1052,50 @@ MemberSID               : S-1-5-21-3842939050-3880317879-2865463114-1965
 
 ```text
 Domain Admins
-     │
-     ├── svc_qualys
-     │
-     ├── sp-admin
-     │
-     └── Secadmins
-            │
-            └── spong1990
+      │
+      ├── svc_qualys
+      │
+      ├── sp-admin
+      │
+      └── Secadmins
+             │
+             └── spong1990
 ```
 
 Therefore:
 
 ```text
 spong1990
-   ↓
-Secadmins
-   ↓
-Domain Admins
+    ↓
+member of Secadmins
+    ↓
+Secadmins nested in Domain Admins
+    ↓
+effective Domain Admin membership
 ```
 
-The important lesson is that **direct membership is not the whole story**.
-
-> [!important] CPTS  
-> Whenever you enumerate privileged groups, check **nested membership**. A user may inherit powerful privileges without appearing as a direct member of the privileged group.
+> [!important]  
+> **Nested groups are why simple direct-membership enumeration can be misleading.**
+> 
+> Always distinguish:
+> 
+> ```text
+> Direct membership
+>       vs
+> Effective membership
+> ```
+> 
+> `-Recurse` helps expose this relationship.
 
 ---
 
-# 🤝 16. PowerView Trust Mapping
+# 🧬 14. PowerView Trust Mapping
 
 ```powershell
-PS C:\htb> Get-DomainTrustMapping
+Get-DomainTrustMapping
 ```
 
-Output:
+Example:
 
 ```text
 SourceName      : INLANEFREIGHT.LOCAL
@@ -1050,65 +1123,87 @@ WhenCreated     : 11/1/2021 6:20:22 PM
 WhenChanged     : 2/26/2022 11:55:55 PM
 ```
 
-This provides a trust map showing:
+This is particularly useful for building the **domain/forest topology**.
 
 ```text
 INLANEFREIGHT.LOCAL
        │
-       ├── WITHIN_FOREST
-       │      ↓
-       │ LOGISTICS.INLANEFREIGHT.LOCAL
+       │ WITHIN_FOREST
+       ↓
+LOGISTICS.INLANEFREIGHT.LOCAL
+
        │
-       └── FOREST_TRANSITIVE
-              ↓
-       FREIGHTLOGISTICS.LOCAL
+       │ FOREST_TRANSITIVE
+       ↓
+FREIGHTLOGISTICS.LOCAL
 ```
 
 ---
 
-# 🛡️ 17. Test Local Administrator Access
-
-[PowerView Test-AdminAccess Documentation](https://powersploit.readthedocs.io/en/latest/Recon/Test-AdminAccess/?utm_source=chatgpt.com)
+# 🛡️ 15. Testing Local Administrator Access
 
 ```powershell
-PS C:\htb> Test-AdminAccess -ComputerName ACADEMY-EA-MS01
+Test-AdminAccess -ComputerName ACADEMY-EA-MS01
+```
 
+Output:
+
+```text
 ComputerName    IsAdmin
 ------------    -------
 ACADEMY-EA-MS01    True
 ```
 
-This answers a very important question:
+This answers:
 
-> **Can my current domain user administer this remote machine?**
+> **"Does my current context have local administrative access to this computer?"**
 
-In a real environment, this can be repeated against multiple hosts to determine where the current account has administrative rights.
+The command can be repeated against multiple hosts.
 
-### Mental Model
+### 🧠 Why This Matters
 
 ```text
-Current User
-     │
-     ├── Host A → IsAdmin = False
-     ├── Host B → IsAdmin = True  ← administrative foothold
-     ├── Host C → IsAdmin = False
-     └── Host D → IsAdmin = True  ← administrative foothold
+VALID CREDENTIAL
+      ↓
+LOCAL ADMIN ACCESS
+      ↓
+REMOTE HOST
+      ↓
+POTENTIAL LATERAL MOVEMENT
+      ↓
+ENUMERATE THAT HOST
 ```
 
-> [!important] Why This Matters  
-> Local administrator rights can provide a bridge to another machine, where additional credentials, sessions, files, or other useful information may exist.
+> [!important]  
+> Local administrator access is different from domain administrator membership.
+> 
+> ```text
+> Domain Admin
+>     ↓
+> Domain-level privileged group membership
+> 
+> Local Admin
+>     ↓
+> Administrative control over a particular host
+> ```
+> 
+> A normal domain user can potentially have local administrator rights on one or more individual machines.
 
 ---
 
-# 🎫 18. Find Users With SPNs — PowerView
+# 🎫 16. Finding Users With SPNs Using PowerView
 
 ```powershell
-PS C:\htb> Get-DomainUser -SPN -Properties samaccountname,ServicePrincipalName
+Get-DomainUser -SPN -Properties samaccountname,ServicePrincipalName
+```
 
+Output:
+
+```text
 serviceprincipalname                          samaccountname
 --------------------                          --------------
 adfsconnect/azure01.inlanefreight.local       adfs
-backupjob/veam001.inlanefreight.local          backupagent
+backupjob/veam001.inlanefreight.local         backupagent
 d0wngrade/kerberoast.inlanefreight.local      d0wngrade
 kadmin/changepw                               krbtgt
 MSSQLSvc/DEV-PRE-SQL.inlanefreight.local:1433 sqldev
@@ -1119,51 +1214,66 @@ testspn/kerberoast.inlanefreight.local        testspn
 testspn2/kerberoast.inlanefreight.local       testspn2
 ```
 
-> [!tip] Enumeration Pattern
+> [!important]  
+> This is an **enumeration step**.
 > 
 > ```text
-> Get users
->    ↓
-> Filter SPN
->    ↓
-> Identify service accounts
->    ↓
-> Assess Kerberoasting exposure
+> Get-DomainUser -SPN
+>          ↓
+> Identify accounts with SPNs
+>          ↓
+> Investigate service accounts
+>          ↓
+> Potential Kerberoasting target
 > ```
 > 
-> This is a **candidate-identification step**, not proof that every account can be successfully Kerberoasted.
+> The command itself does not constitute the complete Kerberoasting attack.
 
 ---
 
-# ⚡ 19. SharpView
+# 🪟 17. SharpView
 
-PowerView is associated with the PowerSploit ecosystem, while **SharpView** is a .NET port providing many of the same enumeration functions.
+[SharpView](https://github.com/tevora-threat/SharpView) is a **.NET implementation/port of PowerView functionality**.
 
-The source notes that PowerView has also been maintained in the BC-Security Empire ecosystem and that the newer version includes functions such as `Get-NetGmsa`.
+The purpose is largely similar:
 
-[Empire / BC-Security PowerView](https://github.com/BC-SECURITY/Empire/blob/master/empire/server/data/module_source/situational_awareness/network/powerview.ps1?utm_source=chatgpt.com)
+```text
+PowerView
+   │
+   │ PowerShell
+   ↓
+AD reconnaissance
 
-SharpView is useful when:
+SharpView
+   │
+   │ .NET
+   ↓
+AD reconnaissance
+```
 
-- PowerShell usage is restricted/hardened
-    
-- A .NET executable is more practical
-    
-- You want many PowerView-style queries without importing the PowerShell script
-    
+> [!info]  
+> The original PowerSploit version of PowerView was deprecated, while the source material discusses the BC-Security/Empire development version. SharpView provides another way to perform similar reconnaissance functionality.
 
-### SharpView Help
+---
+
+## 🔎 17.1 SharpView Help
 
 ```powershell
-PS C:\htb> .\SharpView.exe Get-DomainUser -Help
+.\SharpView.exe Get-DomainUser -Help
+```
 
+Output:
+
+```text
 Get_DomainUser -Identity <String[]> -DistinguishedName <String[]> -SamAccountName <String[]> -Name <String[]> -MemberDistinguishedName <String[]> -MemberName <String[]> -SPN <Boolean> -AdminCount <Boolean> -AllowDelegation <Boolean> -DisallowDelegation <Boolean> -TrustedToAuth <Boolean> -PreauthNotRequired <Boolean> -KerberosPreauthNotRequired <Boolean> -NoPreauth <Boolean> -Domain <String> -LDAPFilter <String> -Filter <String> -Properties <String[]> -SearchBase <String> -ADSPath <String> -Server <String> -DomainController <String> -SearchScope <SearchScope> -ResultPageSize <Int32> -ServerTimeLimit <Nullable`1> -SecurityMasks <Nullable`1> -Tombstone <Boolean> -FindOne <Boolean> -ReturnOne <Boolean> -Credential <NetworkCredential> -Raw <Boolean> -UACFilter <UACEnum>
 ```
 
-### Query a Specific User
+---
+
+## 👤 17.2 Enumerating a User
 
 ```powershell
-PS C:\htb> .\SharpView.exe Get-DomainUser -Identity forend
+.\SharpView.exe Get-DomainUser -Identity forend
 ```
 
 Output:
@@ -1195,43 +1305,22 @@ usnchanged                     : 3259288
 logoncount                     : 26618
 primarygroupid                 : 513
 objectcategory                 : CN=Person,CN=Schema,CN=Configuration,DC=INLANEFREIGHT,DC=LOCAL
-dscorepropagationdata          : {3/24/2022 3:58:07 PM, 3/24/2022 3:57:44 PM, 3/24/2022 3:52:58 PM, 3/24/2022 3:49:31 PM, 7/14/1601 10:36:49 PM}
+dscorepropagationdata          : {3/24/2022 3:58:07 PM, 3/24/2022 3:57:44 PM, 3/24/2022 3:52:58 PM, 3/24/2022 3:49:31 PM, 7/14/1601 10:36:49:49:49 PM}
 usncreated                     : 3054181
 instancetype                   : 4
 codepage                       : 0
 ```
 
-> [!important] SharpView vs PowerView
-> 
-> ```text
-> PowerView
->    └── PowerShell-based AD enumeration
-> 
-> SharpView
->    └── .NET implementation of many PowerView-style functions
-> ```
-> 
-> The source specifically notes SharpView can be useful when PowerShell is hardened or unavailable.
+> [!tip]  
+> SharpView is especially useful to understand when you encounter environments where PowerShell use is hardened or restricted. Functionally, the goal remains the same: **enumerate AD information**.
 
 ---
 
-# 📂 20. SMB Shares — Why Pillage Them?
+# 📂 18. Shares
 
-Domain shares are designed to let users access information required for their roles.
+Network shares are an important part of credentialed enumeration because a standard domain account may have access to significantly more information than expected.
 
-The security model should generally be:
-
-```text
-User
-  ↓
-Authentication
-  ↓
-Authorization
-  ↓
-Only required shares/data
-```
-
-Overly permissive shares can expose:
+Potentially sensitive information may include:
 
 - 🔑 Passwords
     
@@ -1239,72 +1328,102 @@ Overly permissive shares can expose:
     
 - ⚙️ Configuration files
     
-- 🧾 Personnel/HR information
+- 🗄️ Database files
     
-- ⚖️ Legal information
+- 🧾 Backups
+    
+- 🧑‍💼 HR/personnel information
     
 - 🏥 Medical information
     
-- 🗄️ Database files
-    
-- 🛠️ Infrastructure files
+- 🔧 IT infrastructure information
     
 
-This can be especially valuable after compromising a standard domain account that has access to IT/infrastructure shares.
+The assessment question becomes:
 
-> [!warning] Reporting Perspective  
-> Share exposure is not merely an attack-path problem. Sensitive information accessible to users who do not need it can be a standalone security finding and may have regulatory implications such as HIPAA or PCI requirements.
-
-PowerView can hunt for shares, but manually searching large environments can become tedious. **Snaffler** automates much of this process.
+> **"What information can this compromised domain account access through network shares?"**
 
 ---
 
-# 🦅 21. Snaffler
-
-[Snaffler](https://github.com/SnaffCon/Snaffler?utm_source=chatgpt.com)
-
-Snaffler searches an AD environment for potentially sensitive information.
-
-High-level workflow:
+## 🧠 Share Enumeration Mental Model
 
 ```text
-🏢 Enumerate domain hosts
-        ↓
-📂 Find shares
-        ↓
-🔐 Determine readable directories
-        ↓
-🔎 Search accessible files
-        ↓
-🚨 Identify potentially sensitive files
+COMPROMISED DOMAIN USER
+          ↓
+   ACCESSIBLE SHARES
+          ↓
+   READABLE DIRECTORIES
+          ↓
+     INTERESTING FILES
+          ↓
+ ┌────────┴─────────┐
+ ↓                  ↓
+Credentials       Configuration
+ ↓                  ↓
+More access       More knowledge
+        \          /
+         ↓        ↓
+          Further Access
+```
+
+> [!warning]  
+> Not every accessible file is an attack path. Some findings may primarily represent **data exposure** or compliance/security-posture issues and may still be important to report.
+
+---
+
+# 🧲 19. Snaffler
+
+[Snaffler](https://github.com/SnaffCon/Snaffler) automates much of the tedious process of hunting through accessible domain shares.
+
+It:
+
+```text
+1. Obtains a list of hosts
+          ↓
+2. Enumerates shares
+          ↓
+3. Identifies readable directories
+          ↓
+4. Searches accessible files
+          ↓
+5. Looks for potentially sensitive data
 ```
 
 Snaffler requires a **domain-joined host or domain-user context**.
 
-### Snaffler Execution
+---
 
-```powershell
+## ▶️ 19.1 Snaffler Execution
+
+```bash
 Snaffler.exe -s -d inlanefreight.local -o snaffler.log -v data
 ```
 
-Important options:
+### Important Options
 
 |Option|Purpose|
 |---|---|
-|`-s`|Print results to console|
-|`-d`|Domain to search|
-|`-o`|Output logfile|
-|`-v`|Verbosity level|
+|`-s`|Print results to the console|
+|`-d`|Specify the domain to search|
+|`-o`|Write results to a logfile|
+|`-v`|Set verbosity level|
 
-The source notes that `data` is typically useful for the verbosity setting because it makes the initial output easier to review.
+The source notes that `data` is typically useful for displaying results while keeping the output manageable.
 
-Because Snaffler can generate a large amount of information, logging results to a file is useful.
+> [!tip]  
+> Snaffler can produce a **large amount of output**. Saving results to a file lets the tool run while you return to the results later.
 
-### Snaffler in Action
+---
+
+## 🔎 19.2 Snaffler in Action
 
 ```powershell
-PS C:\htb> .\Snaffler.exe  -d INLANEFREIGHT.LOCAL -s -v data
+.\Snaffler.exe  -d INLANEFREIGHT.LOCAL -s -v data
+```
 
+Example output:
+
+```text
  .::::::.:::.    :::.  :::.    .-:::::'.-:::::':::    .,:::::: :::::::..
 ;;;`    ``;;;;,  `;;;  ;;`;;   ;;;'''' ;;;'''' ;;;    ;;;;'''' ;;;;``;;;;
 '[==/[[[[, [[[[[. '[[ ,[[ '[[, [[[,,== [[[,,== [[[     [[cccc   [[[,/[[['
@@ -1325,7 +1444,11 @@ PS C:\htb> .\Snaffler.exe  -d INLANEFREIGHT.LOCAL -s -v data
 2022-03-31 12:17:19 -07:00 [Share] {Green}(\\ACADEMY-EA-FILE.INLANEFREIGHT.LOCAL\UpdateServicesPackages)
 2022-03-31 12:17:19 -07:00 [File] {Black}<KeepExtExactBlack|R|^\.kwallet$|302B|3/31/2022 12:04:45 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Infosec\WriteUse.kwallet) .kwallet
 2022-03-31 12:17:19 -07:00 [File] {Red}<KeepExtExactRed|R|^\.key$|298B|3/31/2022 12:05:10 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Infosec\ProtectStep.key) .key
-2022-03-31 12:17:19 -07:00 [Share] {Red}(\\ACADEMY-EA-FILE.INLANEFREIGHT.LOCAL\WsusContent)
+2022-03-31 12:17:19 -07:00 [File] {Black}<KeepExtExactBlack|R|^\.ppk$|275B|3/31/2022 12:04:40 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Infosec\StopTrace.ppk) .ppk
+2022-03-31 12:17:19 -07:00 [File] {Red}<KeepExtExactRed|R|^\.key$|301B|3/31/2022 12:09:17 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Infosec\WaitClear.key) .key
+2022-03-31 12:17:19 -07:00 [File] {Red}<KeepExtExactRed|R|^\.sqldump$|312B|3/31/2022 12:05:30 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Development\DenyRedo.sqldump) .sqldump
+2022-03-31 12:17:19 -07:00 [File] {Red}<KeepExtExactRed|R|^\.sqldump$|310B|3/31/2022 12:05:02 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Development\AddPublish.sqldump) .sqldump
+2022-03-31 12:17:19 -07:00 [Share] {Green}(\\ACADEMY-EA-FILE.INLANEFREIGHT.LOCAL\WsusContent)
 2022-03-31 12:17:19 -07:00 [File] {Red}<KeepExtExactRed|R|^\.keychain$|295B|3/31/2022 12:08:42 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Infosec\SetStep.keychain) .keychain
 2022-03-31 12:17:19 -07:00 [File] {Black}<KeepExtExactBlack|R|^\.tblk$|279B|3/31/2022 12:05:25 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Development\FindConnect.tblk) .tblk
 2022-03-31 12:17:19 -07:00 [File] {Black}<KeepExtExactBlack|R|^\.psafe3$|301B|3/31/2022 12:09:33 PM>(\\ACADEMY-EA-DC01.INLANEFREIGHT.LOCAL\Department Shares\IT\Development\GetUpdate.psafe3) .psafe3
@@ -1337,135 +1460,85 @@ PS C:\htb> .\Snaffler.exe  -d INLANEFREIGHT.LOCAL -s -v data
 <SNIP>
 ```
 
-### 🧠 Interpreting Snaffler
-
-The output can reveal files such as:
-
-- `.key`
-    
-- `.keychain`
-    
-- `.ppk`
-    
-- `.kdb`
-    
-- `.kwallet`
-    
-- `.psafe3`
-    
-- `.keypair`
-    
-- `.sqldump`
-    
-- `.mdf`
-    
-
-These extensions can indicate potentially sensitive credentials, keys, password databases, database data, or configuration material.
-
-> [!important] Don't Treat Every Hit as a Credential  
-> Snaffler identifies **potentially interesting files**. The extension alone does not prove the file contains usable credentials. Each hit requires validation and contextual analysis.
-
----
-
-# 🕸️ 22. BloodHound / SharpHound
-
-[BloodHound](https://github.com/BloodHoundAD/BloodHound?utm_source=chatgpt.com)
-
-[SharpHound](https://github.com/BloodHoundAD/SharpHound?utm_source=chatgpt.com)
-
-BloodHound is designed to visualize relationships between AD objects and identify potential attack paths.
-
-Instead of manually correlating:
+Snaffler can identify potentially interesting file types such as:
 
 ```text
-User
- ↓
-Group
- ↓
-Computer
- ↓
-Local Admin
- ↓
-Session
- ↓
-ACL
- ↓
-GPO
- ↓
-Privileged Account
+.kdb
+.key
+.kwallet
+.ppk
+.sqldump
+.keychain
+.psafe3
+.keypair
+.mdf
 ```
 
-BloodHound turns these relationships into a graph.
+These may represent potentially valuable authentication, configuration, database, or credential-related material depending on their contents.
 
-> [!tip] Mental Model  
-> **PowerView asks:**  
-> _“Tell me about this object.”_
+> [!important]  
+> **Snaffler answers a different question from BloodHound:**
 > 
-> **BloodHound asks:**  
-> _“Show me how these objects are connected.”_
-
-BloodHound can help analyze:
-
-- Users
-    
-- Groups
-    
-- Computers
-    
-- Group memberships
-    
-- GPOs
-    
-- ACLs
-    
-- Trusts
-    
-- Local administrator relationships
-    
-- Sessions
-    
-- RDP access
-    
-- WinRM / PSRemote access
-    
-- DCOM access
-    
-- SPN-related relationships
-    
-- Computer/user properties
-    
+> ```text
+> BloodHound
+>     ↓
+> AD relationships
+>     ↓
+> "What can connect to what?"
+> 
+> Snaffler
+>     ↓
+> File/share access
+>     ↓
+> "What sensitive information can I read?"
+> ```
 
 ---
 
-# 🦅 23. SharpHound Collection
+# 🩸 20. BloodHound + SharpHound
 
-SharpHound is the Windows collector used to gather AD data for BloodHound.
+[BloodHound](https://github.com/SpecterOps/BloodHound) is used to visualize and analyze relationships between AD objects.
 
-The Windows attack host may be:
+[SharpHound](https://github.com/SpecterOps/SharpHound) is the collector that gathers the information BloodHound needs.
 
-- A domain-joined host
-    
-- A Windows host positioned inside the network
-    
-- Another Windows attack host from which the tool can authenticate/access the domain
-    
+## 🧠 Collector vs Analyzer
 
-[HTB File Transfer Module](https://academy.hackthebox.com/course/preview/file-transfers?utm_source=chatgpt.com)
+```text
+                    AD ENVIRONMENT
+                          │
+                          ↓
+                     SharpHound
+                          │
+                    DATA COLLECTION
+                          │
+                          ↓
+                    JSON DATASET
+                          │
+                          ↓
+                     BloodHound
+                          │
+                 GRAPH / CORRELATION
+                          │
+                          ↓
+                  ATTACK PATH ANALYSIS
+```
 
-The source notes methods such as:
+> [!important]  
+> This distinction is one of the most important concepts in this section:
+> 
+> **SharpHound collects. BloodHound analyzes.**
 
-- Python HTTP server
-    
-- `smbserver.py` from Impacket
-    
-- Other authorized file-transfer methods
-    
+---
 
-### SharpHound Help
+# 🔧 21. SharpHound Help
 
 ```powershell
-PS C:\htb> .\SharpHound.exe --help
+.\SharpHound.exe --help
+```
 
+Example:
+
+```text
 SharpHound 1.0.3
 Copyright (C) 2022 SpecterOps
 
@@ -1487,18 +1560,20 @@ Copyright (C) 2022 SpecterOps
   <SNIP>
 ```
 
-### Run Collection
+---
+
+# 🚀 22. Running SharpHound
 
 ```powershell
-PS C:\htb> .\SharpHound.exe -c All --zipfilename ILFREIGHT
+.\SharpHound.exe -c All --zipfilename ILFREIGHT
 ```
 
-Output:
+Example output:
 
 ```text
 2022-04-18T13:58:22.1163680-07:00|INFORMATION|Resolved Collection Methods: Group, LocalAdmin, GPOLocalGroup, Session, LoggedOn, Trusts, ACL, Container, RDP, ObjectProps, DCOM, SPNTargets, PSRemote
 2022-04-18T13:58:22.1163680-07:00|INFORMATION|Initializing SharpHound at 1:58 PM on 4/18/2022
-2022-04-18T13:58:22.1163680-07:00|INFORMATION|Flags: Group, LocalAdmin, GPOLocalGroup, Session, LoggedOn, Trusts, ACL, Container, RDP, ObjectProps, DCOM, SPNTargets, PSRemote
+2022-04-18T13:58:22.6788709-07:00|INFORMATION|Flags: Group, LocalAdmin, GPOLocalGroup, Session, LoggedOn, Trusts, ACL, Container, RDP, ObjectProps, DCOM, SPNTargets, PSRemote
 2022-04-18T13:58:23.0851206-07:00|INFORMATION|Beginning LDAP search for INLANEFREIGHT.LOCAL
 2022-04-18T13:58:53.9132950-07:00|INFORMATION|Status: 0 objects finished (+0 0)/s -- Using 67 MB RAM
 2022-04-18T13:59:15.7882419-07:00|INFORMATION|Producer has finished, closing LDAP channel
@@ -1507,98 +1582,56 @@ Output:
 2022-04-18T13:59:45.4132561-07:00|INFORMATION|Consumers finished, closing output channel
 Closing writers
 2022-04-18T13:59:45.4601086-07:00|INFORMATION|Output channel closed, waiting for output task to complete
-2022-04-18T13:59:45.8663660-07:00|INFORMATION|Status: 3809 objects finished (+16 46.45122)/s -- Using 110 MB RAM
-2022-04-18T13:59:45.8663660-07:00|INFORMATION|Enumeration finished in 00:01:22.7919186
+2022-04-18T13:59:45.8663528-07:00|INFORMATION|Status: 3809 objects finished (+16 46.45122)/s -- Using 110 MB RAM
+2022-04-18T13:59:45.8663528-07:00|INFORMATION|Enumeration finished in 00:01:22.7919186
 2022-04-18T13:59:46.3663660-07:00|INFORMATION|SharpHound Enumeration Completed at 1:59 PM on 4/18/2022! Happy Graphing
 ```
 
-> [!important] Collection vs Analysis  
-> **SharpHound collects the data. BloodHound analyzes and visualizes it.**
-> 
-> ```text
-> Windows Host
->      │
->      ▼
-> SharpHound
->      │
->      ├── Users
->      ├── Groups
->      ├── Computers
->      ├── ACLs
->      ├── Sessions
->      ├── Trusts
->      └── Other relationships
->              │
->              ▼
->        JSON dataset
->              │
->              ▼
->         BloodHound
->              │
->              ▼
->       Graph / attack paths
-> ```
+The resulting dataset can then be loaded into BloodHound.
 
 ---
 
-# 🖥️ 24. BloodHound GUI
+# 🧠 23. BloodHound Analysis
 
-After collection, the resulting ZIP/JSON dataset can be loaded into BloodHound.
-
-On the lab MS01 host:
+Once the SharpHound data has been collected, it can be:
 
 ```text
-bloodhound
+Windows Host
+     ↓
+SharpHound
+     ↓
+ZIP / JSON dataset
+     ↓
+BloodHound
+     ↓
+Graph database
+     ↓
+Relationships
+     ↓
+Analysis
 ```
 
-If prompted in the source lab:
-
-```text
-neo4j: HTB_@cademy_stdnt!
-```
-
-Then:
-
-1. Select **Upload Data**
-    
-2. Select the generated ZIP
-    
-3. Wait for all `.json` files to reach `100%`
-    
-4. Browse the domain
-    
-5. Use the **Analysis** tab
-    
-6. Use **Raw Query** for custom Cypher
-    
-
-The source recommends searching:
+The source describes uploading the generated ZIP through the BloodHound GUI and then searching for:
 
 ```text
 domain:
 ```
 
-and selecting:
+to select:
 
 ```text
 INLANEFREIGHT.LOCAL
 ```
 
-The example environment contains more than **550 hosts** and trusts with other domains.
+The example environment contains more than 550 hosts and trusts with two other domains.
 
 ---
 
-# 🔎 25. BloodHound Analysis Queries
+# 🔎 24. BloodHound Analysis Queries
 
 ## 🖥️ Find Computers with Unsupported Operating Systems
 
-The query:
-
-```text
-Find Computers with Unsupported Operating Systems
-```
-
-can identify legacy operating systems.
+This query can identify hosts running legacy operating systems.
 
 The source example identifies:
 
@@ -1607,485 +1640,639 @@ The source example identifies:
 - Windows Server 2008
     
 
-These systems may be vulnerable to older issues such as:
+These systems may have vulnerabilities associated with outdated software.
 
-[MS08-067 — Microsoft](https://support.microsoft.com/en-us/topic/ms08-067-vulnerability-in-server-service-could-allow-remote-code-execution-ac7878fc-be69-7143-472d-2507a179cd15?utm_source=chatgpt.com)
+The source specifically references **MS08-067**, an old Server Service vulnerability.
 
-> [!warning] Validate Legacy Hosts  
-> A stale AD record does **not necessarily mean the host is currently alive**.
+> [!warning]  
+> An old operating system appearing in AD does **not automatically mean the host is currently live**.
 > 
-> Before recommending remediation or attempting an attack against a legacy host, validate whether it is actually powered on and whether it supports a critical application/service.
+> A stale computer object can remain in Active Directory after a machine has been decommissioned.
 > 
-> The source notes that an old host could warrant:
+> Therefore:
 > 
-> - A finding for legacy operating systems
->     
-> - A recommendation to clean stale AD records
->     
-> - Network segmentation
->     
-> - A plan to decommission/replace the host
->     
+> ```text
+> AD record
+>     ↓
+> Validate host
+>     ↓
+> Is it actually live?
+>     ↓
+> Only then assess exposure
+> ```
+
+This distinction matters both for exploitation decisions and accurate penetration-test reporting.
 
 ---
 
-# 🛡️ 26. Find Computers Where Domain Users Are Local Admin
+# 🛡️ 25. Finding Excessive Local Administrator Rights
 
-Query:
+BloodHound can identify situations where users or groups have local administrator rights over computers.
+
+The example query is:
 
 ```text
 Find Computers where Domain Users are Local Admin
 ```
 
-This can reveal hosts where a broad population of domain users has local administrator rights.
-
-### Mental Model
+The dangerous relationship can be visualized as:
 
 ```text
 Domain Users
-      │
-      ▼
-Local Administrators
-      │
-      ▼
-Multiple hosts
-      │
-      ▼
-Any compromised account may have local admin access
+     │
+     │ Local Admin
+     ↓
+Computer
 ```
 
-The source notes that this can enable access to:
+If an account we control is a member of `Domain Users`, this relationship can potentially give that account administrative access to the affected host.
 
-- Host resources
-    
-- Credentials in memory
-    
-- Sensitive files
-    
-- Additional sessions or credentials
-    
-
-> [!important] Why This Is Valuable  
-> A broad local-admin assignment converts a **single compromised domain account** into potential administrative access across additional hosts.
-
----
-
-# 📊 27. BloodHound vs PowerView vs Native AD Tools
-
-|Tool|Main Strength|Best Mental Model|
-|---|---|---|
-|**ActiveDirectory PowerShell**|Native AD enumeration|🧱 Understand the raw AD objects|
-|**PowerView**|Flexible manual AD recon|🔎 Investigate specific relationships|
-|**SharpView**|.NET PowerView-style enumeration|⚡ PowerView-style recon without relying on PowerShell|
-|**Snaffler**|Share/file hunting|📂 Find sensitive data|
-|**SharpHound**|Windows BloodHound collection|🦅 Collect relationship data|
-|**BloodHound**|Graph analysis|🕸️ Correlate relationships and attack paths|
-
-> [!success] CPTS Progression
+> [!important]  
+> This is an example of why **relationship mapping** is powerful.
+> 
+> Individually:
 > 
 > ```text
-> Native AD Module
->       ↓
-> Understand users/groups/trusts/attributes
->       ↓
-> PowerView / SharpView
->       ↓
-> Investigate relationships manually
->       ↓
-> Snaffler
->       ↓
-> Hunt accessible shares/files
->       ↓
-> SharpHound
->       ↓
-> Collect broad AD relationship data
->       ↓
-> BloodHound
->       ↓
-> Visualize + correlate + identify paths
+> User exists
+> Computer exists
+> Domain Users exists
 > ```
+> 
+> does not immediately tell us much.
+> 
+> The relationship:
+> 
+> ```text
+> Domain Users
+>       ↓
+> Local Admin
+>       ↓
+> Computer
+> ```
+> 
+> is what makes the finding interesting.
 
 ---
 
-# 🧹 28. Operational Documentation
+# 🧩 26. PowerView vs SharpHound vs BloodHound
 
-During an assessment, document:
-
-- Every file transferred to a host
-    
-- Every file transferred from a host
-    
-- Where files were placed
-    
-- Tools introduced into the environment
-    
-- Relevant output
-    
-- Findings and relationships discovered
-    
-
-This matters for:
-
-- Customer deconfliction
-    
-- Reporting
-    
-- Reproducing findings
-    
-- Cleanup
-    
-- Engagement closeout
-    
-
-> [!important] Cleanup  
-> Depending on the engagement scope, remove tools, scripts, temporary files, and other artifacts introduced into the environment at the conclusion of the assessment.
-
----
-
-# 🧠 29. The Big Picture — Credentialed Enumeration from Windows
-
-Once we have a valid domain account:
-
-```text
-🔑 VALID DOMAIN CREDENTIAL
-             │
-             ▼
-     🌐 GET-ADDOMAIN
-             │
-             ├── Domain SID
-             ├── Forest
-             ├── Child domains
-             └── DC information
-             │
-             ▼
-       👤 USERS / SPNs
-             │
-             ├── User attributes
-             ├── Privileged attributes
-             └── Kerberoasting candidates
-             │
-             ▼
-        👥 GROUPS
-             │
-             ├── Privileged groups
-             ├── Membership
-             └── Nested membership
-             │
-             ▼
-         🤝 TRUSTS
-             │
-             ├── Within-forest
-             └── Cross-forest
-             │
-             ▼
-        🛡️ LOCAL ADMIN
-             │
-             └── Find hosts where current user is admin
-             │
-             ▼
-          📂 SHARES
-             │
-             ├── Readable shares
-             └── Sensitive files
-             │
-             ▼
-        🦅 BLOODHOUND
-             │
-             ├── ACLs
-             ├── Sessions
-             ├── GPOs
-             ├── Trusts
-             ├── Local admin
-             └── Other relationships
-             │
-             ▼
-       🕸️ GRAPH ANALYSIS
-             │
-             ▼
-    🎯 ATTACK-PATH / MISCONFIGURATION DISCOVERY
-```
-
----
-
-# 🧩 30. What Each Tool Answers
-
-### 🧱 ActiveDirectory PowerShell Module
-
-> **“What objects exist in AD, and what attributes do they have?”**
-
-Use for:
-
-- Domain information
-    
-- Users
-    
-- Groups
-    
-- Group members
-    
-- Trusts
-    
-- SPNs
-    
-
----
-
-### 🔎 PowerView
-
-> **“Tell me exactly what I want to know about this AD relationship.”**
-
-Use for:
-
-- Detailed users
-    
-- Recursive group membership
-    
-- Trust mapping
-    
-- Local admin checks
-    
-- SPNs
-    
-- Sessions
-    
-- Shares
-    
-- ACLs
-    
-- GPOs
-    
-
----
-
-### ⚡ SharpView
-
-> **“Can I perform PowerView-style enumeration through .NET?”**
-
-Useful when PowerShell is restricted/hardened.
-
----
-
-### 📂 Snaffler
-
-> **“What sensitive files can my domain context reach?”**
-
-Focus:
-
-```text
-Hosts → Shares → Readable directories → Interesting files
-```
-
----
-
-### 🦅 SharpHound
-
-> **“Collect the AD relationship data.”**
-
----
-
-### 🕸️ BloodHound
-
-> **“How are all these AD objects connected?”**
-
-This is the major advantage:
-
-```text
-Individual facts
-      ↓
-Relationships
-      ↓
-Graph
-      ↓
-Potential paths
-```
-
----
-
-# 🧠 31. CPTS Mental Model — Don't Enumerate Randomly
-
-A common beginner mistake is:
-
-```text
-Run tool
-↓
-Get huge output
-↓
-Scroll
-↓
-Get overwhelmed
-```
-
-Instead:
-
-```text
-1️⃣ DOMAIN
-   ↓
-2️⃣ USERS / GROUPS
-   ↓
-3️⃣ PRIVILEGED MEMBERSHIP
-   ↓
-4️⃣ COMPUTERS
-   ↓
-5️⃣ LOCAL ADMIN ACCESS
-   ↓
-6️⃣ SESSIONS
-   ↓
-7️⃣ SHARES / FILES
-   ↓
-8️⃣ TRUSTS
-   ↓
-9️⃣ SPNs
-   ↓
-🔟 BLOODHOUND CORRELATION
-```
-
-Then ask:
-
-> **“What does this piece of information allow me to investigate next?”**
-
-Examples:
-
-```text
-Found privileged group
-        ↓
-Enumerate its members
-        ↓
-Check nested groups
-        ↓
-Find where those users are logged in
-        ↓
-Check administrative access
-        ↓
-Correlate with BloodHound
-```
-
-Or:
-
-```text
-Found readable IT share
-        ↓
-Search files
-        ↓
-Find configuration / credential material
-        ↓
-Identify account
-        ↓
-Retest credentials against relevant services
-```
-
-Or:
-
-```text
-Found trust
-        ↓
-Identify trust direction/type
-        ↓
-Determine which domains are reachable
-        ↓
-Map relationships in BloodHound
-        ↓
-Investigate cross-domain paths
-```
-
----
-
-# 🚨 32. Important Distinctions for the Exam
-
-|Concept|Remember|
+|Question|Tool|
 |---|---|
-|**Domain**|AD administrative/security boundary containing users, computers, groups, etc.|
-|**Forest**|Collection of one or more AD domains sharing the forest structure|
-|**Child Domain**|A domain beneath another domain in the same forest hierarchy|
-|**Trust**|Relationship allowing authentication/authorization between domains/forests|
-|**Within-Forest Trust**|Trust relationship between domains in the same forest|
-|**Forest-Transitive Trust**|Trust extending across forests|
-|**Direct Group Membership**|User directly belongs to the group|
-|**Nested Membership**|User belongs to another group that is itself a member of the target group|
-|**SPN**|Service Principal Name associated with a service/account; useful for identifying Kerberoasting candidates|
-|**Local Admin**|Administrative rights over a specific host, not automatically Domain Admin|
-|**SharpHound**|Collector|
-|**BloodHound**|Graph analysis/visualization|
-|**PowerView**|Manual AD reconnaissance|
-|**Snaffler**|Automated share/file hunting|
+|"What users exist?"|ActiveDirectory / PowerView / SharpView|
+|"What groups exist?"|ActiveDirectory / PowerView / SharpView|
+|"Who belongs to this group?"|ActiveDirectory / PowerView / SharpView|
+|"Who has an SPN?"|ActiveDirectory / PowerView / SharpView|
+|"What trusts exist?"|ActiveDirectory / PowerView / SharpView|
+|"Where am I local admin?"|PowerView / SharpHound + BloodHound|
+|"What files can I access?"|Snaffler / PowerView|
+|"What sensitive files exist on accessible shares?"|Snaffler|
+|"What relationships exist between AD objects?"|SharpHound|
+|"How do those relationships form attack paths?"|BloodHound|
+|"What can I manually investigate in AD?"|PowerView|
+|"What can I visualize and correlate?"|BloodHound|
 
 ---
 
-# 🔗 33. Resources
+# 🧠 27. The Complete Windows Credentialed Enumeration Workflow
 
-- [ActiveDirectory PowerShell Module](https://docs.microsoft.com/en-us/powershell/module/activedirectory/?view=windowsserver2022-ps&utm_source=chatgpt.com)
-    
-- [PowerView / PowerSploit](https://github.com/PowerShellMafia/PowerSploit/tree/master/Recon?utm_source=chatgpt.com)
-    
-- [PowerView — HTB Academy](https://academy.hackthebox.com/course/preview/active-directory-powerview?utm_source=chatgpt.com)
-    
-- [Snaffler](https://github.com/SnaffCon/Snaffler?utm_source=chatgpt.com)
-    
-- [BloodHound](https://github.com/BloodHoundAD/BloodHound?utm_source=chatgpt.com)
-    
-- [SharpHound](https://github.com/BloodHoundAD/SharpHound?utm_source=chatgpt.com)
-    
-- [BloodHound Cypher Cheat Sheet](https://hausec.com/2019/09/09/bloodhound-cypher-cheatsheet/?utm_source=chatgpt.com)
-    
-- [Active Directory BloodHound — HTB Academy](https://academy.hackthebox.com/course/preview/active-directory-bloodhound?utm_source=chatgpt.com)
-    
-- [File Transfers — HTB Academy](https://academy.hackthebox.com/course/preview/file-transfers?utm_source=chatgpt.com)
-    
+```text
+                 VALID DOMAIN CREDENTIALS
+                           │
+                           ↓
+                 🪟 WINDOWS ATTACK HOST
+                           │
+            ┌──────────────┴──────────────┐
+            │                             │
+            ↓                             ↓
+     Native AD Module                 PowerView
+            │                             │
+            └──────────────┬──────────────┘
+                           ↓
+                    DOMAIN ENUMERATION
+                           │
+          ┌────────────────┼─────────────────┐
+          ↓                ↓                 ↓
+       USERS             GROUPS            TRUSTS
+          │                │                 │
+          ↓                ↓                 ↓
+       SPNs          Memberships       Forest/Domain
+          │                │             relationships
+          │                ↓                 │
+          │         Privileged Groups       │
+          │                │                 │
+          └────────┬───────┴─────────────────┘
+                   ↓
+             RELATIONSHIP DATA
+                   │
+          ┌────────┴─────────┐
+          ↓                  ↓
+     SharpHound            Snaffler
+          │                  │
+          ↓                  ↓
+    AD relationships     File/share data
+          │                  │
+          ↓                  ↓
+      BloodHound          Sensitive data
+          │                  │
+          └────────┬─────────┘
+                   ↓
+             CORRELATE DATA
+                   ↓
+          IDENTIFY WEAKNESSES
+                   ↓
+       ┌───────────┼────────────┐
+       ↓           ↓            ↓
+   Local Admin   SPN/Service   Trusts
+       │          Accounts       │
+       ↓             │           ↓
+    Lateral          ↓       Cross-domain
+    Movement     Credentials    paths
+       │             │           │
+       └─────────────┼───────────┘
+                     ↓
+             FURTHER ACCESS
+```
 
 ---
 
-# 🏁 34. Key Takeaways
+# 🎯 28. The CPTS Mental Model
 
-> [!success] Remember These
+The entire section can be remembered as **five questions**:
+
+```text
+1️⃣ WHAT EXISTS?
+       ↓
+   Users
+   Groups
+   Computers
+   Domains
+   OUs
+   GPOs
+
+2️⃣ WHAT CAN I ACCESS?
+       ↓
+   Shares
+   Local admin rights
+   RDP
+   WinRM
+   Other permissions
+
+3️⃣ WHAT IS PRIVILEGED?
+       ↓
+   Admin groups
+   Nested groups
+   Service accounts
+   SPNs
+   ACLs
+
+4️⃣ HOW IS EVERYTHING CONNECTED?
+       ↓
+   Trusts
+   Group relationships
+   Sessions
+   Local admin relationships
+   ACLs
+   GPOs
+
+5️⃣ WHAT CAN I DO WITH THE INFORMATION?
+       ↓
+   Identify attack paths
+   Identify sensitive data
+   Identify lateral movement opportunities
+   Identify privilege escalation paths
+```
+
+---
+
+# 🧩 29. Why We Use Multiple Tools
+
+The tools are not redundant.
+
+They approach the same AD environment from different angles:
+
+```text
+                     ACTIVE DIRECTORY
+                           │
+       ┌───────────────────┼────────────────────┐
+       │                   │                    │
+       ↓                   ↓                    ↓
+   AD Module            PowerView            Snaffler
+       │                   │                    │
+  Native queries      Deep/manual recon     File hunting
+       │                   │                    │
+       └───────────┬───────┘                    │
+                   ↓                            │
+             AD INFORMATION                    │
+                   │                            │
+                   ↓                            │
+              SharpHound                        │
+                   │                            │
+            Relationship data                   │
+                   ↓                            │
+              BloodHound                        │
+                   │                            │
+             Graph analysis                     │
+                   │                            │
+                   └──────────────┬─────────────┘
+                                  ↓
+                       COMPLETE PICTURE
+                                  ↓
+                 ┌─────────────────────────┐
+                 │                         │
+             AD ATTACK PATHS          DATA EXPOSURE
+                 │                         │
+             Lateral Move             Credentials
+             Priv Esc                 Keys
+             Trust Paths              Configs
+                 │                         │
+                 └────────────┬────────────┘
+                              ↓
+                       FURTHER ACCESS
+```
+
+> [!important]  
+> **Do not think:**
 > 
-> - 🔑 **Valid domain credentials are extremely valuable for enumeration**, even when they are low privilege.
->     
-> - 🧱 **ActiveDirectory PowerShell** teaches you the underlying AD objects and attributes.
->     
-> - 👥 Always investigate **group membership and nested groups**.
->     
-> - 🎫 Users with **SPNs** are candidates for further Kerberoasting investigation.
->     
-> - 🤝 Always enumerate **trust relationships**, including within-forest and cross-forest relationships.
->     
-> - 🛡️ Determine where your current user has **local administrator access**.
->     
-> - 📂 Enumerate readable **SMB shares** and investigate potentially sensitive files.
->     
-> - 🦅 **Snaffler** automates much of the share/file hunting process.
->     
-> - 🔎 **PowerView** is excellent for targeted, manual AD enumeration.
->     
-> - ⚡ **SharpView** provides many PowerView-style functions through .NET.
->     
-> - 🦅 **SharpHound collects** AD relationship data.
->     
-> - 🕸️ **BloodHound analyzes and visualizes** those relationships.
->     
-> - 🧠 The goal is not to run every command blindly; each enumeration result should answer **what to investigate next**.
->     
-> - 📝 Document tools, files, output, and changes throughout the engagement.
->     
-> - 🧹 Clean up artifacts at the end of the engagement according to the agreed scope.
->     
+> `"Which one of these tools should I use?"`
+> 
+> Think:
+> 
+> `"What question am I trying to answer?"`
+> 
+> Then select the tool based on its role.
+
+---
+
+# 📋 30. Enumeration vs Analysis vs Exploitation
+
+|Phase|Example tools|Main question|
+|---|---|---|
+|🔎 Enumeration|ActiveDirectory, PowerView, SharpView|What exists?|
+|📂 File discovery|Snaffler|What sensitive information can I access?|
+|🧩 Relationship collection|SharpHound|How are AD objects related?|
+|🧠 Relationship analysis|BloodHound|What meaningful paths exist?|
+|🎯 Target identification|Combination of collected data|Which objects deserve further investigation?|
+|🛠️ Exploitation|Depends on discovered weakness|Can the identified weakness be validated?|
+|🔓 Lateral/vertical movement|Depends on discovered access|Can access be extended?|
+
+---
+
+# 🕵️ 31. Stealth and Assessment Considerations
+
+Using native functionality such as the ActiveDirectory PowerShell module may blend into normal administrative activity more than dropping a separate offensive tool onto a host.
+
+```text
+Native AD cmdlets
+       ↓
+Already part of Windows administration
+       ↓
+Potentially less unusual than
+dropping a custom binary
+```
+
+> [!warning]  
+> "Stealthier" does **not** mean invisible or undetectable.
+> 
+> The source material's point is that native administrative functionality can potentially blend more naturally into normal activity than introducing an unfamiliar tool.
+
+Likewise, assessment scope matters.
+
+Some findings may be:
+
+```text
+Attack-enabling
+      OR
+Informational
+      OR
+Compliance-related
+      OR
+Security-posture related
+```
+
+A finding does not need to directly produce privilege escalation to be relevant to the customer.
+
+---
+
+# 🧾 32. Reporting Mental Model
+
+During a real assessment, document:
+
+- Files transferred to hosts
+    
+- Files transferred from hosts
+    
+- Where tools were placed
+    
+- Where generated data was stored
+    
+- Relevant enumeration output
+    
+- Sensitive findings
+    
+- Attack paths
+    
+- Systems accessed
+    
+
+```text
+ACTION
+  ↓
+DOCUMENT
+  ↓
+CORRELATE
+  ↓
+VALIDATE
+  ↓
+REPORT
+  ↓
+CLEAN UP
+```
+
+> [!important]  
+> Depending on engagement scope, cleanup is part of responsible assessment operations. Tools and files introduced into the environment should be removed when appropriate and permitted by the engagement.
+
+---
+
+# 🔄 33. From Enumeration to Attack Paths
+
+At the end of credentialed enumeration, we should have transformed:
+
+```text
+USERNAME + PASSWORD
+```
+
+into a much richer dataset:
+
+```text
+USER
+ │
+ ├── GROUP MEMBERSHIP
+ │       │
+ │       └── PRIVILEGES
+ │
+ ├── SPNs
+ │       │
+ │       └── SERVICE ACCOUNTS
+ │
+ ├── LOCAL ADMIN RIGHTS
+ │       │
+ │       └── COMPUTERS
+ │
+ ├── SHARE ACCESS
+ │       │
+ │       └── SENSITIVE FILES
+ │
+ └── TRUST RELATIONSHIPS
+         │
+         └── OTHER DOMAINS / FORESTS
+```
+
+Then:
+
+```text
+                 RAW INFORMATION
+                        ↓
+                   CORRELATION
+                        ↓
+                RELATIONSHIPS
+                        ↓
+                 WEAKNESSES
+                        ↓
+                ATTACK PATHS
+                        ↓
+              FURTHER ACCESS
+```
+
+---
+
+# ⚠️ 34. Important Technical Distinctions
+
+## ActiveDirectory vs PowerView
+
+```text
+ActiveDirectory Module
+        ↓
+Microsoft's AD PowerShell cmdlets
+        ↓
+Direct AD queries
+
+PowerView
+        ↓
+Offensive security reconnaissance toolkit
+        ↓
+Broader manual enumeration
+```
+
+## PowerView vs SharpView
+
+```text
+PowerView
+   ↓
+PowerShell
+   ↓
+AD reconnaissance
+
+SharpView
+   ↓
+.NET
+   ↓
+Similar AD reconnaissance
+```
+
+## SharpHound vs BloodHound
+
+```text
+SharpHound
+   ↓
+COLLECT
+
+BloodHound
+   ↓
+ANALYZE / VISUALIZE
+```
+
+## Snaffler vs BloodHound
+
+```text
+Snaffler
+   ↓
+"What files can I access?"
+
+BloodHound
+   ↓
+"What relationships and paths exist?"
+```
+
+## Direct vs Recursive Group Enumeration
+
+```text
+Get-ADGroupMember
+        ↓
+Direct members
+
+Get-DomainGroupMember -Recurse
+        ↓
+Direct + nested membership
+        ↓
+Effective membership picture
+```
+
+## Domain Admin vs Local Admin
+
+```text
+DOMAIN ADMIN
+     ↓
+Domain-level privileged group
+
+LOCAL ADMIN
+     ↓
+Administrative rights on a specific host
+```
+
+---
+
+# 🧠 35. Final CPTS Mental Model
+
+> [!success]  
+> **Credentialed enumeration from Windows is about turning one valid account into a complete understanding of the AD environment.**
+
+```text
+🔑 VALID CREDENTIALS
+        ↓
+🔎 ENUMERATE DOMAIN
+        ↓
+👤 USERS
+👥 GROUPS
+🖥️ COMPUTERS
+🧬 TRUSTS
+📜 GPOs / ACLs
+🎫 SPNs
+        ↓
+🛡️ DETERMINE ACCESS
+        ↓
+LOCAL ADMIN
+RDP
+WINRM
+SHARES
+        ↓
+📂 HUNT FILES
+        ↓
+CREDENTIALS
+KEYS
+CONFIGURATION
+DATABASES
+        ↓
+🕸️ COLLECT RELATIONSHIPS
+        ↓
+SharpHound
+        ↓
+🧠 ANALYZE
+        ↓
+BloodHound
+        ↓
+🎯 IDENTIFY POTENTIAL PATHS
+        ↓
+🛠️ VALIDATE / EXPLOIT
+        ↓
+🔓 LATERAL / VERTICAL MOVEMENT
+```
+
+> [!tip]  
+> The most important shift in thinking is:
+> 
+> **Don't memorize individual commands as isolated tricks.**
+> 
+> Instead, understand what question each command answers:
 > 
 > ```text
-> 🔑 CREDS
->    ↓
-> 🧭 ENUMERATE
->    ↓
-> 👥 UNDERSTAND MEMBERSHIP
->    ↓
-> 🖥️ MAP ACCESS
->    ↓
-> 📂 PILLAGE REACHABLE DATA
->    ↓
-> 🤝 MAP TRUSTS
->    ↓
-> 🎫 IDENTIFY SPNs
->    ↓
-> 🦅 COLLECT
->    ↓
-> 🕸️ CORRELATE WITH BLOODHOUND
->    ↓
-> 🎯 UNDERSTAND POSSIBLE PATHS
+> Get-ADDomain
+>      → What domain am I in?
+> 
+> Get-ADUser
+>      → Who are the users / which accounts have interesting attributes?
+> 
+> Get-ADGroup / Get-ADGroupMember
+>      → Who has which group privileges?
+> 
+> Get-ADTrust
+>      → What other domains are connected?
+> 
+> Get-DomainUser -SPN
+>      → Which user accounts have SPNs?
+> 
+> Test-AdminAccess
+>      → Where am I already an administrator?
+> 
+> Snaffler
+>      → What sensitive files can I access?
+> 
+> SharpHound
+>      → What relationship data can I collect?
+> 
+> BloodHound
+>      → What does all that relationship data mean?
 > ```
+
+# ✅ 36. Key Takeaways
+
+1. **Credentialed Windows enumeration gives much deeper visibility than simple network scanning.**
+    
+2. The **ActiveDirectory PowerShell module** provides native AD querying capabilities.
+    
+3. `Get-ADDomain` reveals important domain structure, including **domain SID, functional level, child domains, forest information, and DC roles**.
+    
+4. Accounts with a populated `ServicePrincipalName` attribute are potential **Kerberoasting targets**.
+    
+5. `Get-ADTrust` and PowerView's `Get-DomainTrustMapping` reveal **domain and forest trust relationships**.
+    
+6. Group enumeration must consider **nested membership**, not only direct membership.
+    
+7. **Local administrator access** and **Domain Admin membership** are different concepts.
+    
+8. **PowerView** is a broad, manual AD reconnaissance framework.
+    
+9. **SharpView** provides similar PowerView-style functionality through .NET.
+    
+10. **Snaffler** focuses on accessible shares and potentially sensitive files.
+    
+11. **SharpHound collects relationship data.**
+    
+12. **BloodHound analyzes and visualizes that relationship data.**
+    
+13. BloodHound is especially powerful because it changes AD enumeration from isolated facts into a **relationship graph**.
+    
+14. Not every finding needs to directly lead to exploitation; **data exposure, excessive permissions, stale systems, and other security-posture issues can still matter to the customer**.
+    
+15. Always distinguish:
+    
+    - **Enumeration** → collecting information
+        
+    - **Correlation** → connecting information
+        
+    - **Analysis** → understanding relationships
+        
+    - **Exploitation** → validating a weakness
+        
+16. The overall CPTS workflow is:
+    
+
+```text
+🔎 ENUMERATE
+     ↓
+📊 COLLECT
+     ↓
+🧩 CORRELATE
+     ↓
+🧠 ANALYZE
+     ↓
+🎯 IDENTIFY PATH
+     ↓
+🛠️ VALIDATE
+     ↓
+🔓 MOVE / ESCALATE
+```
+
+> [!success]  
+> **Core CPTS takeaway:**
+> 
+> A valid domain account is not just a credential for logging in somewhere. It is a starting point for discovering the **permissions, relationships, trust boundaries, accessible data, privileged accounts, and potential movement paths** throughout the AD environment.
