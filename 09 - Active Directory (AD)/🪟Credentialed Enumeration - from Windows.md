@@ -63,7 +63,7 @@
 
 ---
 
-Yes — the easiest way to understand these is **they are not all doing the same job**. Think of them as different layers of AD enumeration:
+# **they are not all doing the same job**. Think of them as different layers of AD enumeration:
 
 |Tool|Main purpose|Mental model|
 |---|---|---|
