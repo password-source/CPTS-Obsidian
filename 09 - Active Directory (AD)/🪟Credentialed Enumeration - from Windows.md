@@ -63,6 +63,229 @@
 
 ---
 
+Yes — the easiest way to understand these is **they are not all doing the same job**. Think of them as different layers of AD enumeration:
+
+|Tool|Main purpose|Mental model|
+|---|---|---|
+|**ActiveDirectory PowerShell Module**|Query AD directly|🗄️ **Ask AD for specific data**|
+|**PowerView**|Powerful AD enumeration|🔎 **Explore AD from many angles**|
+|**SharpView**|PowerView rewritten in C#|🥷 **PowerView functionality without PowerShell**|
+|**Snaffler**|Find sensitive files/credentials|📂 **Search the network for juicy files**|
+|**SharpHound**|Collect AD relationship data|🕸️ **Build the data for BloodHound**|
+|**BloodHound**|Analyze AD relationships|🧠 **Show attack paths / relationships visually**|
+
+### 1. ActiveDirectory PowerShell Module
+
+This is the **native Microsoft AD management module**.
+
+For example:
+
+```
+Get-ADDomain
+```
+
+→ "Tell me information about the current domain."
+
+```
+Get-ADUser -Filter *
+```
+
+→ "Give me AD users."
+
+```
+Get-ADGroupMember -Identity "Backup Operators"
+```
+
+→ "Who belongs to this group?"
+
+So you're basically **directly querying Active Directory**.
+
+---
+
+### 2. PowerView
+
+PowerView gives you **much broader enumeration capabilities**.
+
+For example:
+
+```
+Get-DomainUser
+Get-DomainGroupMember
+Get-DomainTrustMapping
+Test-AdminAccess
+Get-DomainUser -SPN
+```
+
+Instead of simply asking:
+
+> "Give me this AD object."
+
+you're doing things like:
+
+> "Show me domain relationships, privileged groups, trusts, SPNs, where I have admin access, etc."
+
+So:
+
+**AD Module = direct AD queries**
+
+**PowerView = offensive/security-focused AD reconnaissance**
+
+---
+
+### 3. SharpView
+
+SharpView is basically the **C# version of PowerView's functionality**.
+
+Instead of:
+
+```
+Get-DomainUser
+```
+
+you might use:
+
+```
+SharpView.exe Get-DomainUser
+```
+
+The important distinction is **execution method**, not what you're trying to discover.
+
+> PowerView → PowerShell  
+> SharpView → compiled C#
+
+This can be useful when PowerShell execution is restricted or you want to avoid relying on a PowerShell script.
+
+---
+
+### 4. Snaffler
+
+Snaffler is different.
+
+It isn't primarily asking:
+
+> "What are the AD relationships?"
+
+It's looking for **interesting/sensitive files across accessible network resources**.
+
+Think:
+
+```
+AD enumeration
+     ↓
+Who are the users?
+Who are the admins?
+What groups exist?
+What systems exist?
+     ↓
+Snaffler
+     ↓
+What interesting files/credentials/configurations
+can I access?
+```
+
+So Snaffler is more about **finding sensitive information**, such as credentials or configuration files.
+
+---
+
+### 5. SharpHound
+
+SharpHound is the **collector**.
+
+It goes around the AD environment and collects relationship information such as:
+
+```
+User → MemberOf → Group
+User → AdminTo → Computer
+Computer → HasSession → User
+Group → MemberOf → Group
+Domain → Trust → Domain
+```
+
+Then it packages that information for BloodHound.
+
+So:
+
+**SharpHound = collect**
+
+---
+
+### 6. BloodHound
+
+BloodHound is the **analysis/visualization side**.
+
+You give BloodHound the data collected by SharpHound, and BloodHound helps you understand relationships like:
+
+```
+Low-privileged user
+       ↓
+Member of Group A
+       ↓
+Group A has privileges on Computer B
+       ↓
+Computer B
+       ↓
+Admin access
+       ↓
+Domain Admin
+```
+
+So:
+
+**SharpHound → gathers the evidence**
+
+**BloodHound → makes sense of the evidence**
+
+---
+
+## 🧠 The big picture
+
+Think of your CPTS workflow like this:
+
+```
+                 ACTIVE DIRECTORY
+                        │
+          ┌─────────────┴─────────────┐
+          │                           │
+   AD PowerShell                  PowerView
+          │                           │
+   Specific queries             Broad enumeration
+          │                           │
+          └─────────────┬─────────────┘
+                        │
+                   AD INFORMATION
+                        │
+             ┌──────────┴──────────┐
+             │                     │
+         Snaffler             SharpHound
+             │                     │
+       Find sensitive         Collect AD
+          files/data          relationships
+                                   │
+                                   ↓
+                              BloodHound
+                                   │
+                                   ↓
+                         Analyze attack paths
+```
+
+### The key distinction for CPTS
+
+Don't think:
+
+> "Which one should I use?"
+
+Think:
+
+> **"What question am I trying to answer?"**
+
+- **Who/what exists in AD?** → AD Module / PowerView
+- **What are the trusts, groups, SPNs, privileges, etc.?** → PowerView
+- **Need PowerView functionality without PowerShell?** → SharpView
+- **Where are interesting files/credentials?** → Snaffler
+- **What relationships exist between users, groups, computers, sessions, ACLs, etc.?** → SharpHound
+- **What can I do with those relationships / where are the attack paths?** → BloodHound
+
+And this is why your original CPTS workflow says **learn the built-in AD module first**: it teaches you what the underlying AD objects and relationships actually mean. Then PowerView makes enumeration faster/broader, and BloodHound helps you correlate everything.
 # 🧰 2. Cheat Sheet — Commands
 
 ## ActiveDirectory PowerShell Module
