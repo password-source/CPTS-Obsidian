@@ -84,6 +84,7 @@
 | `dsquery * -filter "(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=32))" -attr distinguishedName userAccountControl` | Searches for user objects matching the `PASSWD_NOTREQD` UAC bit.                         |
 | `dsquery * -filter "(userAccountControl:1.2.840.113556.1.4.803:=8192)" -limit 5 -attr sAMAccountName`                                                        | Searches for domain controllers using the UAC `SERVER_TRUST_ACCOUNT` bit.                |
 | `whoami`                                                                                                                                                     | Displays the current security context/user identity.                                     |
+|                                                                                                                                                              |                                                                                          |
 
 ---
 
