@@ -82,7 +82,7 @@ This section should follow the same structure as:
                      └─────┬─────┘
                            ↓
                     FINAL OBJECTIVE
-`````
+````
 
 ### 🔎 What Each Tool Is For
 
