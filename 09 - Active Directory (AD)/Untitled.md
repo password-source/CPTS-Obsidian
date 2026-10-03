@@ -9,7 +9,7 @@
 
 ---
 
-## 💻 Command Cheat Sheet
+# 💻 Command Cheat Sheet
 
 > [!card] PowerView — Active Directory Enumeration  
 > PowerShell-based AD reconnaissance, user enumeration, ACL inspection, and GPO enumeration.
