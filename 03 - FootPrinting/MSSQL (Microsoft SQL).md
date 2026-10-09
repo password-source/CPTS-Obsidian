@@ -15,6 +15,7 @@
 * **Connecting with Local/SQL Authentication**: 
   `python3 mssqlclient.py <username>:<password>@<target_ip> -windows-auth`[cite: 2]
 
+'xp_cmdshell whoami /priv'
 
 
 ---
