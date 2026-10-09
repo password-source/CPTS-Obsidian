@@ -14,6 +14,7 @@
   `python3 mssqlclient.py <domain>/<username>@<target_ip> -windows-auth`[cite: 2]
 * **Connecting with Local/SQL Authentication**: 
   `python3 mssqlclient.py <username>:<password>@<target_ip> -windows-auth`[cite: 2]
+to see if we have impersonation
 
 'xp_cmdshell whoami /priv'
 
